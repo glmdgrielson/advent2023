@@ -6,16 +6,23 @@
 
 use std::fs::read_to_string;
 
-/// The number of cubes per game.
+/// The state of a particular game.
+///
+/// This exactly corresponds to one line
+/// in the original input. AoC is nice like that.
+/// Usually.
 #[derive(Clone, Default, Debug, PartialEq)]
 struct Game {
     /// The game ID
     pub id: usize,
-    /// A list of rounds
+    /// A list of rounds. It is assumed that cubes
+    /// are replaced after each round, so one
+    /// round has no impact on the next.
     pub rounds: Vec<Round>,
 }
 
 #[derive(Clone, Default, Debug, PartialEq)]
+/// The data of one pull from the bag.
 struct Round {
     /// The number of red cubes pulled this round
     pub red: usize,
@@ -35,7 +42,7 @@ struct Round {
 /// It is not guaranteed that this will happen a fixed
 /// number of times or in a fixed order, nor will every
 /// color show up every round. It is guaranteed that each
-/// color will only show up once.
+/// color will only show up once per pull however.
 fn parse_input(data: &str) -> Vec<Game> {
     let mut vec = Vec::new();
 
@@ -47,7 +54,10 @@ fn parse_input(data: &str) -> Vec<Game> {
         // The prefix is assumed by the setup of the puzzle.
         let id = id
             .strip_prefix("Game ")
-            .unwrap()
+            .expect("Missing prefix")
+            // The structure of the puzzle also lets us
+            // assume that this check will always succeed,
+            // so we can unwrap here.
             .parse()
             .expect("Invalid ID");
 
@@ -105,7 +115,8 @@ fn parse_input(data: &str) -> Vec<Game> {
 /// We are assuming for this part that the cubes are
 /// being put BACK into the bag, but that feels like
 /// the sort of assumption part two will tell us is
-/// false...
+/// false... (Pleasantly, I was quite wrong in this
+/// assumption, and part 2 was actually dead simple.)
 fn part_one(data: &[Game]) -> usize {
     let mut sum = 0;
 
