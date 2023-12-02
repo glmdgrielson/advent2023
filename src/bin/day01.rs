@@ -1,4 +1,4 @@
-/// Day one of Advent of Code
+//! Day one of Advent of Code
 use std::fs::read_to_string;
 
 /// Find the first and last digits of each line and add them.
