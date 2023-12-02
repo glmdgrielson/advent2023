@@ -146,8 +146,20 @@ fn part_one(data: &[Game]) -> usize {
 /// up at least once, so that the power (the calculation
 /// we need to make at the end) doesn't somehow wind up
 /// being zero.
-fn part_two() {
-    unimplemented!("Part one incomplete!")
+fn part_two(data: &[Game]) -> usize {
+    let mut sum = 0;
+
+    for game in data {
+        let red_max = game.rounds.iter().max_by_key(|r| r.red).unwrap().red;
+        let green_max = game.rounds.iter().max_by_key(|r| r.green).unwrap().green;
+        let blue_max = game.rounds.iter().max_by_key(|r| r.blue).unwrap().blue;
+
+        let power = red_max * blue_max * green_max;
+
+        sum += power;
+    }
+
+    sum
 }
 
 fn main() {
@@ -155,6 +167,8 @@ fn main() {
     let games = parse_input(&input);
 
     println!("Sum of valid games is {}", part_one(&games));
+
+    println!("The total power of the games is {}", part_two(&games));
 }
 
 #[cfg(test)]
@@ -195,5 +209,13 @@ mod test {
         let example = parse_input(&data);
 
         assert_eq!(part_one(&example), 8);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let data = read_to_string("src/input/day02-test.txt").unwrap();
+        let games = parse_input(&data);
+
+        assert_eq!(part_two(&games), 2286);
     }
 }
