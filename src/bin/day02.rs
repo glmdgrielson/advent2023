@@ -141,6 +141,11 @@ fn part_one(data: &[Game]) -> usize {
 /// Now the elf is giving us a puzzle, specifically,
 /// for each game, what is the fewest number of cubes
 /// required for the game as described to be possible?
+///
+/// We are assuming for each game that every color shows
+/// up at least once, so that the power (the calculation
+/// we need to make at the end) doesn't somehow wind up
+/// being zero.
 fn part_two() {
     unimplemented!("Part one incomplete!")
 }
