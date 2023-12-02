@@ -136,6 +136,11 @@ fn part_one(data: &[Game]) -> usize {
     sum
 }
 
+/// Part 2
+/// ------
+/// Now the elf is giving us a puzzle, specifically,
+/// for each game, what is the fewest number of cubes
+/// required for the game as described to be possible?
 fn part_two() {
     unimplemented!("Part one incomplete!")
 }
