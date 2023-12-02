@@ -17,8 +17,11 @@ struct Game {
 
 #[derive(Clone, Default, Debug, PartialEq)]
 struct Round {
+    /// The number of red cubes pulled this round
     pub red: usize,
+    /// The number of blue cubes pulled this round
     pub blue: usize,
+    /// The number of green cubes pulled this round
     pub green: usize,
 }
 
@@ -107,8 +110,12 @@ fn part_one(data: &[Game]) -> usize {
     let mut sum = 0;
 
     for game in data {
-
-        let red_max = game.rounds.iter().max_by_key(|r| r.red).expect("Should have cubes").red;
+        let red_max = game
+            .rounds
+            .iter()
+            .max_by_key(|r| r.red)
+            .expect("Should have cubes")
+            .red;
         if red_max > 12 {
             continue;
         }
@@ -144,44 +151,33 @@ fn main() {
 mod test {
     use super::*;
 
-    // #[test]
-    // fn test_parse_input() {
-    //     let example = vec![
-    //         Game {
-    //             id: 1,
-    //             red_max: 4,
-    //             green_max: 2,
-    //             blue_max: 6,
-    //         },
-    //         Game {
-    //             id: 2,
-    //             red_max: 1,
-    //             green_max: 3,
-    //             blue_max: 4,
-    //         },
-    //         Game {
-    //             id: 3,
-    //             red_max: 20,
-    //             green_max: 13,
-    //             blue_max: 6,
-    //         },
-    //         Game {
-    //             id: 4,
-    //             red_max: 14,
-    //             green_max: 3,
-    //             blue_max: 15,
-    //         },
-    //         Game {
-    //             id: 5,
-    //             red_max: 6,
-    //             green_max: 3,
-    //             blue_max: 2,
-    //         },
-    //     ];
-    //     let data = read_to_string("src/input/day02-test.txt").expect("Could not read test data");
-    //
-    //     assert_eq!(example, parse_input(&data));
-    // }
+    #[test]
+    fn test_parse_input() {
+        let input = "Game 1: 3 blue, 1 red; 1 red, 2 green, 6 blue; 2 green";
+        let actual = parse_input(input);
+
+        let expected = vec![Game {
+            id: 1,
+            rounds: vec![
+                Round {
+                    blue: 3,
+                    red: 1,
+                    ..Default::default()
+                },
+                Round {
+                    red: 1,
+                    green: 2,
+                    blue: 6,
+                },
+                Round {
+                    green: 2,
+                    ..Default::default()
+                },
+            ],
+        }];
+
+        assert_eq!(expected, actual);
+    }
 
     #[test]
     fn test_part_one() {
