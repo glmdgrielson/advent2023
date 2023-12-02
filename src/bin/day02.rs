@@ -11,12 +11,15 @@ use std::fs::read_to_string;
 struct Game {
     /// The game ID
     pub id: usize,
-    /// The maximum number of red cubes
-    pub red_max: usize,
-    /// The maximum number of green cubes
-    pub green_max: usize,
-    /// The maximum number of blue cubes.
-    pub blue_max: usize,
+    /// A list of rounds
+    pub rounds: Vec<Round>,
+}
+
+#[derive(Clone, Default, Debug, PartialEq)]
+struct Round {
+    pub red: usize,
+    pub blue: usize,
+    pub green: usize,
 }
 
 /// Input consists of a set of games, with each game
@@ -28,7 +31,8 @@ struct Game {
 ///
 /// It is not guaranteed that this will happen a fixed
 /// number of times or in a fixed order, nor will every
-/// color show up every round.
+/// color show up every round. It is guaranteed that each
+/// color will only show up once.
 fn parse_input(data: &str) -> Vec<Game> {
     let mut vec = Vec::new();
 
@@ -46,13 +50,15 @@ fn parse_input(data: &str) -> Vec<Game> {
 
         let mut game = Game {
             id,
-            ..Default::default()
+            rounds: Vec::new(),
         };
 
         // Split the game by rounds
-        for round in data.split("; ") {
+        for tally in data.split("; ") {
+            let mut round: Round = Default::default();
+
             // Split the round into colors
-            for pull in round.split(", ") {
+            for pull in tally.split(", ") {
                 // Separate number and color of cubes
                 let (count, color) = pull.split_once(" ").expect("Invalid pull");
 
@@ -63,24 +69,22 @@ fn parse_input(data: &str) -> Vec<Game> {
                 // of the other pulls
                 match color {
                     "red" => {
-                        if count > game.red_max {
-                            game.red_max = count;
-                        }
+                        round.red = count;
                     }
                     "blue" => {
-                        if count > game.blue_max {
-                            game.blue_max = count;
-                        }
+                        round.blue = count;
                     }
                     "green" => {
-                        if count > game.green_max {
-                            game.green_max = count;
-                        }
+                        round.green = count;
                     }
                     _ => unreachable!("Impossible color of cube"),
                 }
             }
+
+            game.rounds.push(round);
         }
+
+        // eprintln!("{:?}", game);
 
         vec.push(game);
     }
@@ -103,15 +107,19 @@ fn part_one(data: &[Game]) -> usize {
     let mut sum = 0;
 
     for game in data {
-        if game.red_max > 12 {
+
+        let red_max = game.rounds.iter().max_by_key(|r| r.red).expect("Should have cubes").red;
+        if red_max > 12 {
             continue;
         }
 
-        if game.green_max > 13 {
+        let blue_max = game.rounds.iter().max_by_key(|r| r.blue).unwrap().blue;
+        if blue_max > 13 {
             continue;
         }
 
-        if game.green_max > 14 {
+        let green_max = game.rounds.iter().max_by_key(|r| r.green).unwrap().green;
+        if green_max > 14 {
             continue;
         }
 
@@ -136,79 +144,49 @@ fn main() {
 mod test {
     use super::*;
 
-    #[test]
-    fn test_parse_input() {
-        let example = vec![
-            Game {
-                id: 1,
-                red_max: 4,
-                green_max: 2,
-                blue_max: 6,
-            },
-            Game {
-                id: 2,
-                red_max: 1,
-                green_max: 3,
-                blue_max: 4,
-            },
-            Game {
-                id: 3,
-                red_max: 20,
-                green_max: 13,
-                blue_max: 6,
-            },
-            Game {
-                id: 4,
-                red_max: 14,
-                green_max: 3,
-                blue_max: 15,
-            },
-            Game {
-                id: 5,
-                red_max: 6,
-                green_max: 3,
-                blue_max: 2,
-            },
-        ];
-        let data = read_to_string("src/input/day02-test.txt").expect("Could not read test data");
-
-        assert_eq!(example, parse_input(&data));
-    }
+    // #[test]
+    // fn test_parse_input() {
+    //     let example = vec![
+    //         Game {
+    //             id: 1,
+    //             red_max: 4,
+    //             green_max: 2,
+    //             blue_max: 6,
+    //         },
+    //         Game {
+    //             id: 2,
+    //             red_max: 1,
+    //             green_max: 3,
+    //             blue_max: 4,
+    //         },
+    //         Game {
+    //             id: 3,
+    //             red_max: 20,
+    //             green_max: 13,
+    //             blue_max: 6,
+    //         },
+    //         Game {
+    //             id: 4,
+    //             red_max: 14,
+    //             green_max: 3,
+    //             blue_max: 15,
+    //         },
+    //         Game {
+    //             id: 5,
+    //             red_max: 6,
+    //             green_max: 3,
+    //             blue_max: 2,
+    //         },
+    //     ];
+    //     let data = read_to_string("src/input/day02-test.txt").expect("Could not read test data");
+    //
+    //     assert_eq!(example, parse_input(&data));
+    // }
 
     #[test]
     fn test_part_one() {
-        let example = vec![
-            Game {
-                id: 1,
-                red_max: 4,
-                green_max: 2,
-                blue_max: 6,
-            },
-            Game {
-                id: 2,
-                red_max: 1,
-                green_max: 3,
-                blue_max: 4,
-            },
-            Game {
-                id: 3,
-                red_max: 20,
-                green_max: 13,
-                blue_max: 6,
-            },
-            Game {
-                id: 4,
-                red_max: 14,
-                green_max: 3,
-                blue_max: 15,
-            },
-            Game {
-                id: 5,
-                red_max: 6,
-                green_max: 3,
-                blue_max: 2,
-            },
-        ];
+        let data = read_to_string("src/input/day02-test.txt").unwrap();
+        let example = parse_input(&data);
 
         assert_eq!(part_one(&example), 8);
     }
