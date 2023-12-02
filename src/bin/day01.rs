@@ -120,7 +120,7 @@ fn rfind_digit(line: &str) -> usize {
             &"neves" => 7,
             &"thgie" => 8,
             &"enin" => 9,
-            _ => unreachable!("Errant backwards number detected")
+            _ => unreachable!("Errant backwards number detected"),
         };
 
         // We know every line has a digit in it, because part one
