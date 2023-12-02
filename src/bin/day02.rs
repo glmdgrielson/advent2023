@@ -120,13 +120,13 @@ fn part_one(data: &[Game]) -> usize {
             continue;
         }
 
-        let blue_max = game.rounds.iter().max_by_key(|r| r.blue).unwrap().blue;
-        if blue_max > 13 {
+        let green_max = game.rounds.iter().max_by_key(|r| r.green).unwrap().green;
+        if green_max > 13 {
             continue;
         }
 
-        let green_max = game.rounds.iter().max_by_key(|r| r.green).unwrap().green;
-        if green_max > 14 {
+        let blue_max = game.rounds.iter().max_by_key(|r| r.blue).unwrap().blue;
+        if blue_max > 14 {
             continue;
         }
 
