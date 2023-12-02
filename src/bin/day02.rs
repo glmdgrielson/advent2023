@@ -41,7 +41,7 @@ fn parse_input(data: &str) -> Vec<Game> {
         let id = id
             .strip_prefix("Game ")
             .unwrap()
-            .parse::<usize>()
+            .parse()
             .expect("Invalid ID");
 
         let mut game = Game {
