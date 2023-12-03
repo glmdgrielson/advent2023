@@ -40,9 +40,9 @@ fn parse_input(input: &str) -> Grid<char> {
 /// The puzzle doesn't care about the grid, per se,
 /// as so much as it cares about numbers found within
 /// the grid. As such, we need to extract the numbers
-/// from within the grid. 
+/// from within the grid.
 ///
-/// We care about two things with each number: 
+/// We care about two things with each number:
 /// the actual _value_ of the number and whether there
 /// is a "symbol" somewhere next to it. As such, this
 /// function returns a list of structs with both of these
@@ -116,13 +116,8 @@ fn is_symbol(ch: char) -> bool {
 /// `parse_grid` takes care of actually finding the numbers
 /// with symbols; we just need to check whether the symbol
 /// is actually _there_.
-fn part_one(grid: &Grid<char>) -> u32 {
-    // Turn the grid into the list of GridNumber
-    // that we actually care about.
-    parse_grid(&grid)
-        // Turn the list into an iterator so
-        // we can do some proper logic on it.
-        .iter()
+fn part_one(data: &[GridNumber]) -> u32 {
+    data.iter()
         // Reduce the list to the subset of
         // GridNumber that refer to part numbers,
         // which is defined here by having a
@@ -150,13 +145,8 @@ fn part_one(grid: &Grid<char>) -> u32 {
 /// number on the grid_. This means that `parse_input` has to
 /// return the whole grid because we care about the value it
 /// returns here.
-fn part_two(grid: &Grid<char>) -> u32 {
+fn part_two(grid: &Grid<char>, numbers: &[GridNumber]) -> u32 {
     let mut sum = 0;
-
-    // We still mostly only care about the grid numbers here.
-    // Also, I think I see a refactoring opportunity, but that
-    // comes _after_ documentation time.
-    let numbers = parse_grid(grid);
 
     // Get the indices of all the stars in the grid.
     let stars = numbers
@@ -197,9 +187,13 @@ fn part_two(grid: &Grid<char>) -> u32 {
 fn main() {
     let input = read_to_string("src/input/day03.txt").expect("Could not read input");
     let grid = parse_input(&input);
+    let data = parse_grid(&grid);
 
-    println!("The total sum of the part numbers is {}", part_one(&grid));
-    println!("The sum of all of the gear ratios is {}", part_two(&grid));
+    println!("The total sum of the part numbers is {}", part_one(&data));
+    println!(
+        "The sum of all of the gear ratios is {}",
+        part_two(&grid, &data)
+    );
 }
 
 #[cfg(test)]
@@ -231,15 +225,17 @@ mod test {
     fn test_part_one() {
         let input = read_to_string("src/input/day03-test.txt").expect("Could not read example");
         let grid = parse_input(&input);
+        let data = parse_grid(&grid);
 
-        assert_eq!(part_one(&grid), 4361);
+        assert_eq!(part_one(&data), 4361);
     }
 
     #[test]
     fn test_part_two() {
         let input = read_to_string("src/input/day03-test.txt").expect("Could not read example");
         let grid = parse_input(&input);
+        let data = parse_grid(&grid);
 
-        assert_eq!(part_two(&grid), 467835);
+        assert_eq!(part_two(&grid, &data), 467835);
     }
 }
