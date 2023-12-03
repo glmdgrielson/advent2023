@@ -2,49 +2,37 @@
 use std::fs::read_to_string;
 
 /// Find the first and last digits of each line and add them.
-fn part_one(data: &str) -> usize {
-    let mut sum = 0;
-    for line in data.lines() {
-        // Find the first digit.
+fn part_one(data: &str) -> u32 {
+    data.lines().fold(0, |acc, line| {
         let one = line
             .chars()
             .find(|c| c.is_ascii_digit())
             .map(|c| c.to_digit(10).unwrap())
             .expect("Digit not found");
-        // Find the last digit.
         let two = line
             .chars()
             .rfind(|c| c.is_ascii_digit())
             .map(|c| c.to_digit(10).unwrap())
             .expect("Digit not found");
 
-        // Since `one` is the tens digit, multiply it and add
-        // `two to the sum.
         let total = one * 10 + two;
-        sum += total as usize;
-        // let one
-    }
-    return sum;
+        acc + total
+    })
 }
 
-fn part_two(data: &str) -> usize {
-    let mut sum = 0;
-
-    for line in data.lines() {
+fn part_two(data: &str) -> u32 {
+    data.lines().fold(0, |acc, line| {
         let one = find_digit(line);
 
         let rev: String = line.chars().rev().collect();
         let two = rfind_digit(&rev);
-        // println!("Line value: {}{}", one, two);
 
         let total = one * 10 + two;
-        sum += total as usize;
-    }
-
-    return sum;
+        acc + total
+    })
 }
 
-fn find_digit(line: &str) -> usize {
+fn find_digit(line: &str) -> u32 {
     let numbers = [
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
     ];
@@ -74,7 +62,7 @@ fn find_digit(line: &str) -> usize {
                 // Verify the mapping worked.
                 .unwrap()
                 // Verify that we found the digit.
-                .unwrap() as usize
+                .unwrap()
         } else {
             number
         }
@@ -84,7 +72,7 @@ fn find_digit(line: &str) -> usize {
         line.chars()
             .find(|c| c.is_ascii_digit())
             .map(|c| c.to_digit(10).unwrap())
-            .expect("Digit not found") as usize
+            .expect("Digit not found")
     };
     one
 }
@@ -94,7 +82,7 @@ fn find_digit(line: &str) -> usize {
 /// the same as `find_digit` except that it works on a
 /// reversed copy of the string, so that it can find the
 /// LAST instance of a digit.
-fn rfind_digit(line: &str) -> usize {
+fn rfind_digit(line: &str) -> u32 {
     let numbers = [
         "eno", "owt", "eerht", "ruof", "evif", "xis", "neves", "thgie", "enin",
     ];
@@ -135,7 +123,7 @@ fn rfind_digit(line: &str) -> usize {
                 // Verify the mapping worked.
                 .unwrap()
                 // Verify that we found the digit.
-                .unwrap() as usize
+                .unwrap()
         } else {
             number
         }
@@ -145,13 +133,13 @@ fn rfind_digit(line: &str) -> usize {
         line.chars()
             .find(|c| c.is_ascii_digit())
             .map(|c| c.to_digit(10).unwrap())
-            .expect("Digit not found") as usize
+            .expect("Digit not found")
     };
     res
 }
 
 /// Turn a textual number into a digit.
-fn text_to_number(text: &str) -> usize {
+fn text_to_number(text: &str) -> u32 {
     match text {
         "one" => 1,
         "two" => 2,
