@@ -174,7 +174,7 @@ fn part_two(data: &[Game]) -> usize {
 }
 
 fn main() {
-    let input = read_to_string("input/day02.txt").expect("Could not read input data");
+    let input = read_to_string("src/input/day02.txt").expect("Could not read input data");
     let games = parse_input(&input);
 
     println!("Sum of valid games is {}", part_one(&games));

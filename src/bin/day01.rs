@@ -167,7 +167,7 @@ fn text_to_number(text: &str) -> usize {
 }
 
 fn main() {
-    let input = read_to_string("input/day01.txt").expect("File could not be read.");
+    let input = read_to_string("src/input/day01.txt").expect("File could not be read.");
 
     println!("Part one solution is: {}", part_one(&input));
 
