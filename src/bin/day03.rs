@@ -148,8 +148,6 @@ fn part_one(data: &[GridNumber]) -> u32 {
 /// return the whole grid because we care about the value it
 /// returns here.
 fn part_two(grid: &Grid<char>, numbers: &[GridNumber]) -> u32 {
-    let mut sum = 0;
-
     // Get the indices of all the stars in the grid.
     let stars = numbers
         .iter()
@@ -162,28 +160,28 @@ fn part_two(grid: &Grid<char>, numbers: &[GridNumber]) -> u32 {
 
     // Create a mapping between the index and the numbers
     // beside it.
-    let mut map: HashMap<_, _> = HashMap::new();
-    for star in stars {
-        let value = numbers
-            .iter()
-            // Check for all of the numbers for which this
-            // index is the part of.
-            .filter(|n| n.symbol.is_some_and(|idx| idx == star))
-            // Turn this into a reasonable value.
-            .collect::<Vec<_>>();
+    let map: HashMap<_, _> = stars
+        .map(|star| {
+            let value = numbers
+                .iter()
+                // Find which numbers this star is associated with.
+                .filter(|n| n.symbol.is_some_and(|idx| idx == star))
+                // Convert into a usable list.
+                .collect::<Vec<_>>();
+            (star, value)
+        })
+        .collect();
 
-        map.insert(star, value);
-    }
-
-    for value in map.values() {
-        // Check that this is adjacent to exactly two numbers.
+    map.values().fold(0, |acc, value| {
+        // Check if this star is a gear
         if value.len() == 2 {
-            // Get the gear ratio and add it to the sum.
-            sum += value[0].number * value[1].number;
+            // Add the gear ratio to the accumulator.
+            acc + value[0].number * value[1].number
+        } else {
+            // This is _not_ a gear, so we move on.
+            acc
         }
-    }
-
-    sum
+    })
 }
 
 fn main() {
