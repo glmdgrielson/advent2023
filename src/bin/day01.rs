@@ -182,6 +182,7 @@ mod test {
     use super::*;
 
     #[test]
+    #[ignore = "This uses the second example input modified to fit the constraints of part one"]
     fn example_two() {
         let input = read_to_string("src/input/day01-test.txt").expect("File could not be read.");
 
