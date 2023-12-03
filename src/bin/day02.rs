@@ -158,19 +158,15 @@ fn part_one(data: &[Game]) -> usize {
 /// we need to make at the end) doesn't somehow wind up
 /// being zero.
 fn part_two(data: &[Game]) -> usize {
-    let mut sum = 0;
-
-    for game in data {
+    data.iter().fold(0, |acc, game| {
         let red_max = game.rounds.iter().max_by_key(|r| r.red).unwrap().red;
         let green_max = game.rounds.iter().max_by_key(|r| r.green).unwrap().green;
         let blue_max = game.rounds.iter().max_by_key(|r| r.blue).unwrap().blue;
 
-        let power = red_max * blue_max * green_max;
+        let power = red_max * green_max * blue_max;
 
-        sum += power;
-    }
-
-    sum
+        acc + power
+    })
 }
 
 fn main() {
