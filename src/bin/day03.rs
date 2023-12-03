@@ -5,23 +5,23 @@
 //! The gondola is out and you need
 //! to figure out all of the parts!
 
-use simple_grid::Grid;
+use std::collections::HashMap;
 use std::fs::read_to_string;
 
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
+use simple_grid::{Grid, GridIndex};
+
+#[derive(Clone, Debug, PartialEq, Default)]
 struct GridNumber {
     /// The value of this GridNumber.
     pub number: u32,
-    /// The symbol denoting that this is a
+    /// The index of the symbol denoting that this is a
     /// part if Some, otherwise None.
-    pub symbol: Option<char>,
+    pub symbol: Option<GridIndex>,
 }
 
 /// Input consists of a grid consisting
 /// of numbers, symbols, and periods.
-fn parse_input(input: &str) -> Vec<GridNumber> {
-    let mut res = Vec::new();
-
+fn parse_input(input: &str) -> Grid<char> {
     // Create an empty grid
     let mut grid = Grid::<char>::new(0, 0, Vec::new());
     // Make this grid reflect the input.
@@ -29,6 +29,13 @@ fn parse_input(input: &str) -> Vec<GridNumber> {
         grid.push_row(line.chars().collect());
     }
 
+    parse_grid(&grid);
+
+    grid
+}
+
+fn parse_grid(grid: &Grid<char>) -> Vec<GridNumber> {
+    let mut res = Vec::new();
     // Create an empty GridNumber.
     let mut num = GridNumber {
         number: 0,
@@ -50,7 +57,7 @@ fn parse_input(input: &str) -> Vec<GridNumber> {
                 if grid.contains_index(idx) {
                     let sym = grid[idx];
                     if is_symbol(sym) {
-                        num.symbol = Some(sym);
+                        num.symbol = Some(idx);
                     }
                 }
             }
@@ -82,22 +89,56 @@ fn is_symbol(ch: char) -> bool {
     }
 }
 
-fn part_one(data: &[GridNumber]) -> u32 {
+fn part_one(grid: &Grid<char>) -> u32 {
+    let data = parse_grid(&grid);
+
     data.iter()
         .filter(|n| n.symbol.is_some())
         .fold(0, |acc, n| acc + n.number)
 }
 
-#[allow(dead_code)]
-fn part_two() {
-    todo!("Part one incomplete!")
+fn part_two(grid: &Grid<char>) -> u32 {
+    let mut sum = 0;
+
+    let numbers = parse_grid(grid);
+    // Filter the grid numbers to just the ones adjacent to stars.
+    let stars = numbers
+        .iter()
+        .filter(|n| n.symbol.is_some_and(|idx| grid[idx] == '*'))
+        .map(|n| n.symbol.unwrap());
+
+    // Create a mapping between the index and the numbers
+    // beside it.
+    let mut map: HashMap<_, _> = HashMap::new();
+    for star in stars {
+        let value = numbers
+            .iter()
+            // Check for all of the numbers for which this
+            // index is the part of.
+            .filter(|n| n.symbol.is_some_and(|idx| idx == star))
+            // Turn this into a reasonable value.
+            .collect::<Vec<_>>();
+
+        map.insert(star, value);
+    }
+
+    for value in map.values() {
+        // Check that this is adjacent to exactly two numbers.
+        if value.len() == 2 {
+            // Get the gear ratio and add it to the sum.
+            sum += value[0].number * value[1].number;
+        }
+    }
+
+    sum
 }
 
 fn main() {
     let input = read_to_string("src/input/day03.txt").expect("Could not read input");
-    let data = parse_input(&input);
+    let grid = parse_input(&input);
 
-    println!("The total sum of the part numbers is {}", part_one(&data));
+    println!("The total sum of the part numbers is {}", part_one(&grid));
+    println!("The sum of all of the gear ratios is {}", part_two(&grid));
 }
 
 #[cfg(test)]
@@ -107,25 +148,34 @@ mod test {
     #[test]
     fn test_parse_input() {
         let input = read_to_string("src/input/day03-test.txt").expect("Could not read example");
-        let data = parse_input(&input);
+        let grid = parse_input(&input);
+        let data = parse_grid(&grid);
 
         // Check that there _is_ a grid number.
         let one = data.get(0).unwrap();
         // Check the value of the grid number.
         assert_eq!(one.number, 467);
         // Check that it's a part adorned with '*'.
-        assert_eq!(one.symbol, Some('*'));
+        assert!(one.symbol.is_some());
 
         let two = data.get(1).unwrap();
         assert_eq!(two.number, 114);
-        assert_eq!(two.symbol, None);
+        assert!(two.symbol.is_none());
     }
 
     #[test]
     fn test_part_one() {
         let input = read_to_string("src/input/day03-test.txt").expect("Could not read example");
-        let data = parse_input(&input);
+        let grid = parse_input(&input);
 
-        assert_eq!(part_one(&data), 4361);
+        assert_eq!(part_one(&grid), 4361);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let input = read_to_string("src/input/day03-test.txt").expect("Could not read example");
+        let grid = parse_input(&input);
+
+        assert_eq!(part_two(&grid), 467835);
     }
 }
