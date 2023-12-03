@@ -66,13 +66,15 @@ fn parse_grid(grid: &Grid<char>) -> Vec<GridNumber> {
             num.number = num.number * 10 + digit;
 
             // Check for symbols.
-            for idx in idx.neighbors() {
-                if grid.contains_index(idx) {
-                    let sym = grid[idx];
-                    if is_symbol(sym) {
-                        num.symbol = Some(idx);
-                    }
-                }
+            let sym = idx
+                .neighbors()
+                .find(|&idx| grid.contains_index(idx) && is_symbol(grid[idx]));
+            // If we have a symbol and there isn't already a symbol
+            // here, add it to this part. ...the puzzle must assume
+            // that each part number can only be adjacent to one
+            // symbol, somehow. Interesting.
+            if sym.is_some_and(|_| num.symbol.is_none()) {
+                num.symbol = sym;
             }
         } else {
             // We are looking at something else and we need
