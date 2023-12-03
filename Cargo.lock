@@ -3,5 +3,14 @@
 version = 3
 
 [[package]]
-name = "advent"
+name = "advent-2023"
 version = "0.1.0"
+dependencies = [
+ "simple-grid",
+]
+
+[[package]]
+name = "simple-grid"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "724f998fa15b8418bbcaf43c1149dbf8e724336aae2c8cb92c2699515cde6f2e"
