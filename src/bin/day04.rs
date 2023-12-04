@@ -123,7 +123,8 @@ fn part_two(data: &[Ticket]) -> u32 {
         // of using is only questionably safe, which isn't
         // good enough for the dang compiler.
         let this_count = ticket_count.get(&ticket.id).unwrap().clone();
-        let winners = ticket
+
+        ticket
             .expected
             .intersection(&ticket.actual)
             // Get the number of winners
@@ -132,23 +133,22 @@ fn part_two(data: &[Ticket]) -> u32 {
             // Note that we add one so that we don't add
             // extra copies of THIS ticket.
             .map(|(idx, _)| ticket.id + idx + 1)
-            .collect::<Vec<_>>();
-
-        winners.iter().for_each(|&t| {
-            // Find the ticket in the map.
-            // We know we'll always find the ticket,
-            // due to the constraints of the puzzle, but
-            // Rust means I don't necessarily need to know that.
-            ticket_count.entry(t).and_modify(|count| {
-                // Add more tickets to it.
-                //
-                // We specifically need to add one ticket
-                // for every copy of this particular
-                // ticket that we have. This was something
-                // I had to figure out the hard way.
-                *count += this_count;
+            // Update the total of cards for each winner.
+            .for_each(|t| {
+                // Find the ticket in the map.
+                // We know we'll always find the ticket,
+                // due to the constraints of the puzzle, but
+                // Rust means I don't necessarily need to know that.
+                ticket_count.entry(t).and_modify(|count| {
+                    // Add more tickets to it.
+                    //
+                    // We specifically need to add one ticket
+                    // for every copy of this particular
+                    // ticket that we have. This was something
+                    // I had to figure out the hard way.
+                    *count += this_count;
+                });
             });
-        });
     });
 
     ticket_count.values().fold(0, |acc, count| acc + count)
