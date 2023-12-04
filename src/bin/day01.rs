@@ -40,11 +40,8 @@ fn find_digit(line: &str) -> u32 {
     // Find the number closest to the left.
     let search_l = numbers
         .iter()
-        .filter_map(|s| match line.find(s) {
-            Some(idx) => Some((s, idx)),
-            None => None,
-        })
-        .min_by_key(|(_, idx)| idx.clone());
+        .filter_map(|s| line.find(s).map(|idx| (s, idx)))
+        .min_by_key(|(_, idx)| *idx);
 
     // let one = text_to_number(search_l);
     let one = if let Some((number, index)) = search_l {
@@ -90,24 +87,21 @@ fn rfind_digit(line: &str) -> u32 {
     // Find the number closest to the left.
     let search = numbers
         .iter()
-        .filter_map(|s| match line.find(s) {
-            Some(idx) => Some((s, idx)),
-            None => None,
-        })
-        .min_by_key(|(_, idx)| idx.clone());
+        .filter_map(|s| line.find(s).map(|idx| (s, idx)))
+        .min_by_key(|(_, idx)| *idx);
 
     // let one = text_to_number(search_l);
     let res = if let Some((number, index)) = search {
-        let number = match number {
-            &"eno" => 1,
-            &"owt" => 2,
-            &"eerht" => 3,
-            &"ruof" => 4,
-            &"evif" => 5,
-            &"xis" => 6,
-            &"neves" => 7,
-            &"thgie" => 8,
-            &"enin" => 9,
+        let number = match *number {
+            "eno" => 1,
+            "owt" => 2,
+            "eerht" => 3,
+            "ruof" => 4,
+            "evif" => 5,
+            "xis" => 6,
+            "neves" => 7,
+            "thgie" => 8,
+            "enin" => 9,
             _ => unreachable!("Errant backwards number detected"),
         };
 

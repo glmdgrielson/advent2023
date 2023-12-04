@@ -73,7 +73,7 @@ fn parse_input(data: &str) -> Vec<Game> {
             // Split the round into colors
             for pull in tally.split(", ") {
                 // Separate number and color of cubes
-                let (count, color) = pull.split_once(" ").expect("Invalid pull");
+                let (count, color) = pull.split_once(' ').expect("Invalid pull");
 
                 // Turn the number of cubes into a number the computer recognizes
                 let count = count.parse().expect("Invalid number of cubes");
