@@ -117,12 +117,8 @@ fn part_two(data: &[Ticket]) -> u32 {
 
     data.iter().for_each(|ticket| {
         // Get a separate handle on the number of copies
-        // of this ticket that we already have. We need
-        // the `clone` in here to satisfy the borrow checker
-        // since modifying a map that we're in the process
-        // of using is only questionably safe, which isn't
-        // good enough for the dang compiler.
-        let this_count = ticket_count.get(&ticket.id).unwrap().clone();
+        // of this ticket that we already have.
+        let this_count = *ticket_count.get(&ticket.id).unwrap();
 
         ticket
             .expected
@@ -136,6 +132,7 @@ fn part_two(data: &[Ticket]) -> u32 {
             // Update the total of cards for each winner.
             .for_each(|t| {
                 // Find the ticket in the map.
+                //
                 // We know we'll always find the ticket,
                 // due to the constraints of the puzzle, but
                 // Rust means I don't necessarily need to know that.
@@ -151,7 +148,7 @@ fn part_two(data: &[Ticket]) -> u32 {
             });
     });
 
-    ticket_count.values().fold(0, |acc, count| acc + count)
+    ticket_count.values().sum()
 }
 
 fn main() {
