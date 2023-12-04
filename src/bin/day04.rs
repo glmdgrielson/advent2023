@@ -58,7 +58,7 @@ fn parse_input(input: &str) -> Vec<Ticket> {
                 // consecutive numbers in this puzzle,
                 // which is a little annoying.
                 .split_whitespace()
-                .map(|n| n.parse::<u32>().unwrap())
+                .map(|n| n.parse().unwrap())
                 .collect();
             let actual = actual
                 .split_whitespace()
