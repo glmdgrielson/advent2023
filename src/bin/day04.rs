@@ -1,19 +1,139 @@
 //! Day 04 of Advent of Code 2023
+//!
+//! Scratchcards
+//! ============
+//! We've met an elf to help us on our journey!
+//! But right now they want us to look through their lottery tickets.
+//! Sure, why not.
 
+use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 
-fn parse_input(input: &str) {}
+#[derive(Clone, Debug, PartialEq)]
+struct Ticket {
+    pub id: usize,
+    /// The list of winning numbers for this ticket.
+    pub expected: HashSet<u32>,
+    /// The list of numbers the elf put down for this ticket.
+    pub actual: HashSet<u32>,
+}
 
-fn part_one() {}
+/// Input consists of a series of tickets. A ticket has
+/// an identifying number, a series of winning numbers,
+/// and the series of numbers the elf actually tried to
+/// win this ticket with.
+///
+/// ```notrust
+/// Game N: A B C | W X Y Z
+/// ```
+fn parse_input(input: &str) -> Vec<Ticket> {
+    input
+        .lines()
+        .map(|line| {
+            // Remove the constant prefix.
+            let line = line
+                .strip_prefix("Card")
+                .expect("Invalid ticket header")
+                .trim_start();
 
-#[allow(dead_code)]
-fn part_two() {
-    todo!("Part one incomplete!");
+            let (id, ticket) = line.split_once(": ").expect("Missing ticket data");
+            let id = id.parse().expect("Invalid ticket ID");
+
+            let (expected, actual) = ticket.split_once(" | ").expect("Invalid ticket format");
+
+            let expected = expected
+                .split_whitespace()
+                .map(|n| n.parse::<u32>().unwrap())
+                .collect();
+            let actual = actual
+                .split_whitespace()
+                .map(|n| n.parse().unwrap())
+                .collect();
+
+            Ticket {
+                id,
+                expected,
+                actual,
+            }
+        })
+        .collect()
+}
+
+/// Part 1
+/// ------
+///
+/// How well did our elf do? Victory is calculated as such:
+/// - If the elf got one number correct, that's worth one point.
+/// - For every number after the first on that ticket, double the score.
+fn part_one(data: &[Ticket]) -> u32 {
+    data.iter().fold(0, |acc, ticket| {
+        let winners = ticket
+            .expected
+            .intersection(&ticket.actual)
+            .collect::<Vec<_>>();
+
+        // println!("Winners: {:?}", winners);
+
+        let total = winners.len() as u32;
+
+        let score = if total >= 1 { 2_u32.pow(total - 1) } else { 0 };
+
+        // println!("Card {}'s score is {}", ticket.id, score);
+
+        acc + score
+    })
+}
+
+/// Part 2
+/// ------
+///
+/// Oh WHY. So it turns out that there's not really a score system
+/// in place. Instead, winning gets you more scratch cards.
+///
+/// How many scratch cards does this horrid system give you
+/// when you're done with all of this nonsense?
+fn part_two(data: &[Ticket]) -> u32 {
+    // Add the one ticket we know exists for each entry,
+    // the one we already had to begin with.
+    let mut ticket_count: HashMap<usize, u32> = data.iter().map(|t| (t.id, 1)).collect();
+
+    data.iter().for_each(|ticket| {
+        let this_count = ticket_count.get(&ticket.id).unwrap().clone();
+        let winners = ticket
+            .expected
+            .intersection(&ticket.actual)
+            // Get the number of winners
+            .enumerate()
+            // Convert winners to extra scratch off tickets.
+            // Note that we add one so that we don't add
+            // extra copies of THIS ticket.
+            .map(|(idx, _)| ticket.id + idx + 1)
+            .collect::<Vec<_>>();
+
+        winners.iter().for_each(|&t| {
+            // Find the ticket in the map.
+            // We know we'll always find the ticket,
+            // due to the constraints of the puzzle, but
+            // Rust means I don't necessarily need to know that.
+            ticket_count.entry(t).and_modify(|count| {
+                // Add another one to it.
+                *count += this_count;
+            });
+        });
+    });
+
+    ticket_count.values().fold(0, |acc, count| acc + count)
 }
 
 fn main() {
     let input = read_to_string("src/input/day04.txt").expect("Could not find input");
     let data = parse_input(&input);
+
+    println!("The elf's total winnings today is {}", part_one(&data));
+    println!(
+        "The total number of Fibonacci brand scratch cards is {}",
+        part_two(&data)
+    );
 }
 
 #[cfg(test)]
@@ -22,6 +142,31 @@ mod test {
 
     #[test]
     fn test_parse_input() {
+        let input = "Card 1: 3 6 9 | 2 7 8\n";
+
+        let expected = Ticket {
+            id: 1,
+            expected: vec![3, 6, 9].into_iter().collect(),
+            actual: vec![2, 7, 8].into_iter().collect(),
+        };
+        let actual = &parse_input(input)[0];
+
+        assert_eq!(&expected, actual);
+    }
+
+    #[test]
+    fn test_part_one() {
         let input = read_to_string("src/input/day04-test.txt").expect("Could not find example");
+        let data = parse_input(&input);
+
+        assert_eq!(part_one(&data), 13);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let input = read_to_string("src/input/day04-test.txt").expect("Could not find example");
+        let data = parse_input(&input);
+
+        assert_eq!(part_two(&data), 30);
     }
 }
