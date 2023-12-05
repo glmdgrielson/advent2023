@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 simple-grid = "2.2.1"
+thiserror = "1.0.50"
