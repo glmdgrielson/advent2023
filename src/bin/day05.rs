@@ -7,6 +7,7 @@
 //!
 //! Oh boy, @#$% me! We've got complicated input today!
 
+use std::collections::VecDeque;
 use std::fs::read_to_string;
 use std::ops::Range;
 
@@ -139,69 +140,27 @@ fn part_two(data: &Puzzle) -> u32 {
         })
         .collect::<Vec<_>>();
 
-    unimplemented!()
+    let res = data.mappings.iter().fold(ranges, |ranges, maps| {
+        // Split up the ranges.
+        let ranges = ranges.iter().flat_map(|range| {
+            let mut res = vec![];
+            let mut curr = range.clone();
+
+            for map in maps {
+                if range.contains(&map.src) {}
+            }
+
+            res.push(curr);
+            res
+        }).collect();
+        ranges
+    });
+
+    0
 }
 
-fn map_range(maps: &[Mapping], range: &Range<u32>) -> Option<Vec<Range<u32>>> {
-    // Collect all of the mappings relevant to this range.
-    let maps: Vec<_> = maps
-        .iter()
-        // Filter out mappings that start after the range has stopped.
-        .filter(|map| range.end >= map.src)
-        // Filter out mappings that end after we've started.
-        .filter(|map| range.start < map.src + map.len)
-        .collect();
-
-    if maps.is_empty() {
-        // None of the elements fit this range,
-        // so return the ranges we already have.
-        None
-    } else {
-        // We need to add new ranges.
-        let mut added_ranges = Vec::new();
-
-        maps.iter().for_each(|map| {
-            if range.start < map.src {
-                // We start outside of the range,
-                // but end inside of it.
-                // Add two ranges.
-
-                let top = range.start..map.src;
-                let bottom = map.src..range.end;
-
-                let offset = bottom.len();
-                let bottom = map.dest..map.dest + offset as u32;
-
-                added_ranges.push(top);
-                added_ranges.push(bottom);
-            } else if range.end < map.src + map.len {
-                // We fall entirely in range.
-                // Add one range.
-
-                let start = range.start - map.src;
-                let end = range.end - map.src;
-
-                added_ranges.push(map.dest + start..map.dest + end);
-            } else if range.start < map.src + map.len {
-                // We start in the range, but
-                // end up outside of it.
-                // Add two ranges.
-
-                let offset = range.start - map.src;
-                let length = (map.src + map.len) - range.start;
-
-                let top = map.dest + offset..map.dest + offset + length;
-                let bottom = map.src + map.len..range.end;
-
-                added_ranges.push(top);
-                added_ranges.push(bottom);
-            }
-        });
-
-        assert!(!added_ranges.is_empty());
-
-        Some(added_ranges)
-    }
+fn split_range(range: &Range<u32>, map: &Mapping) -> Vec<Range<u32>> {
+    vec![]
 }
 
 fn main() {
@@ -275,27 +234,6 @@ mod test {
         let res = part_one(&data);
 
         assert_eq!(res, Some(35));
-    }
-
-    #[test]
-    fn test_step_range() {
-        let range = 79..(79 + 14);
-        let mappings = vec![
-            Mapping {
-                dest: 50,
-                src: 98,
-                len: 2,
-            },
-            Mapping {
-                dest: 52,
-                src: 50,
-                len: 48,
-            },
-        ];
-
-        let stepped_ranges = map_range(&mappings, &range);
-
-        assert_eq!(stepped_ranges, Some(vec![81..81 + 14]));
     }
 
     #[test]
