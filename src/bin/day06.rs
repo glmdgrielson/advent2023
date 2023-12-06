@@ -32,10 +32,13 @@ enum ParseError {
 /// of a label and a series of numbers separated
 /// by whitespace.
 fn parse_input(input: &str) -> Result<Vec<Race>, ParseError> {
+    // Our input is supposed to be exactly two lines long,
+    // so this check is an easy one to make.
     let Some((time, distance)) = input.split_once("\n") else {
         return Err(ParseError::InvalidFormat("two lines of data"));
     };
 
+    // Remove the textual prefixes so we have just the numbers.
     let Some(time) = time.strip_prefix("Time: ") else {
         return Err(ParseError::InvalidFormat("'Time:' tag"));
     };
@@ -44,22 +47,34 @@ fn parse_input(input: &str) -> Result<Vec<Race>, ParseError> {
     };
 
     let time = time
+        // Remove whatever whitespace was before the first number
         .trim()
+        // Reduce the string to just the list of numbers
         .split_whitespace()
+        // Convert the numbers into integers
         .map(|t| t.parse::<u32>().map_err(ParseError::ParseFailed))
+        // Bail if the conversion failed at any point.
         .collect::<Result<Vec<u32>, ParseError>>()?;
+    // Run the same algorithm again for the other set of numbers.
     let distance = distance
         .trim()
         .split_whitespace()
         .map(|t| t.parse::<u32>().map_err(ParseError::ParseFailed))
         .collect::<Result<Vec<u32>, ParseError>>()?;
 
+    // Part one of the puzzle relies on each time
+    // having a matching distance, so return an
+    // error if that winds up not being the case.
     if time.len() != distance.len() {
         Err(ParseError::InvalidFormat("balanced races"))
     } else {
+        // Otherwise, we have our data and we're off
+        // to the races, quite literally in this case.
         Ok(time
             .iter()
+            // Pair the times up with the distances.
             .zip(distance.iter())
+            // Return the pair data.
             .map(|(time, distance)| Race(*time, *distance))
             .collect())
     }
@@ -76,14 +91,23 @@ fn parse_input(input: &str) -> Result<Vec<Race>, ParseError> {
 /// For each race, how many ways can we win?
 fn part_one(data: &[Race]) -> usize {
     data.iter()
+        // For each race...
         .map(|race| {
             let total_time = race.0;
             let record = race.1;
-            (0..total_time - 1)
+            // And for every possible amount of charge time
+            // besides the two that are guaranteed to be
+            // zero (no charge time and all charge time)...
+            (1..total_time - 1)
+                // Get the total amount of distance traveled...
                 .map(|charge| charge * (total_time - charge))
+                // ...and see if it beats the distance record
                 .filter(|&distance| distance > record)
+                // Return the number of times we do in fact
+                // win the race.
                 .count()
         })
+        // Multiply the scores of all of the races
         .product()
 }
 
@@ -99,10 +123,20 @@ fn part_one(data: &[Race]) -> usize {
 fn part_two(data: &[Race]) -> Result<usize, ParseIntError> {
     let total_time = data
         .iter()
+        // Convert each number BACK
+        // into a string
         .map(|race| race.0.to_string())
+        // Convert the iterator into a Vec
+        // so we have access to a useful method
         .collect::<Vec<_>>()
+        // Concatenate all of the strings
         .concat()
+        // Convert the string into a number.
+        //
+        // This is a u64 because it turns out
+        // that this number is frelling huge. Eep.
         .parse::<u64>()?;
+    // Run the same algorithm for the distance record.
     let record = data
         .iter()
         .map(|race| race.1.to_string())
@@ -110,7 +144,12 @@ fn part_two(data: &[Race]) -> Result<usize, ParseIntError> {
         .concat()
         .parse::<u64>()?;
 
-    Ok((0..total_time)
+    // This is the same algorithm we saw in part one.
+    //
+    // I could _probably_ extract this into a function,
+    // now that I think of it, but that's a "for later"
+    // optimization that I probably don't need to make.
+    Ok((1..total_time - 1)
         .map(|charge| charge * (total_time - charge))
         .filter(|&distance| distance > record)
         .count())
@@ -130,6 +169,7 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::*;
+
     #[test]
     fn test_parse_input() {
         let input = read_to_string("src/input/day06-test.txt").expect("Could not find example");
