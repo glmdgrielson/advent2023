@@ -7,6 +7,9 @@
 //!
 //! Oh boy, @#$% me! We've got complicated input today!
 
+// Putting this in here because @#$% this puzzle.
+#![allow(unused)]
+
 use std::collections::VecDeque;
 use std::fs::read_to_string;
 use std::ops::Range;
