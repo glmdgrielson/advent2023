@@ -34,7 +34,7 @@ enum ParseError {
 fn parse_input(input: &str) -> Result<Vec<Race>, ParseError> {
     // Our input is supposed to be exactly two lines long,
     // so this check is an easy one to make.
-    let Some((time, distance)) = input.split_once("\n") else {
+    let Some((time, distance)) = input.split_once('\n') else {
         return Err(ParseError::InvalidFormat("two lines of data"));
     };
 
@@ -47,8 +47,6 @@ fn parse_input(input: &str) -> Result<Vec<Race>, ParseError> {
     };
 
     let time = time
-        // Remove whatever whitespace was before the first number
-        .trim()
         // Reduce the string to just the list of numbers
         .split_whitespace()
         // Convert the numbers into integers
@@ -57,7 +55,6 @@ fn parse_input(input: &str) -> Result<Vec<Race>, ParseError> {
         .collect::<Result<Vec<u32>, ParseError>>()?;
     // Run the same algorithm again for the other set of numbers.
     let distance = distance
-        .trim()
         .split_whitespace()
         .map(|t| t.parse::<u32>().map_err(ParseError::ParseFailed))
         .collect::<Result<Vec<u32>, ParseError>>()?;
