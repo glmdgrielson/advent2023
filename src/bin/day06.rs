@@ -96,13 +96,35 @@ fn part_one(data: &[Race]) -> usize {
 /// race, and naturally that race has frelling huge
 /// numbers to deal with. Still the question is the
 /// same: how many ways can we win?
-fn part_two(data: &[Race]) {}
+fn part_two(data: &[Race]) -> Result<usize, ParseIntError> {
+    let total_time = data
+        .iter()
+        .map(|race| race.0.to_string())
+        .collect::<Vec<_>>()
+        .concat()
+        .parse::<u64>()?;
+    let record = data
+        .iter()
+        .map(|race| race.1.to_string())
+        .collect::<Vec<_>>()
+        .concat()
+        .parse::<u64>()?;
+
+    Ok((0..total_time)
+        .map(|charge| charge * (total_time - charge))
+        .filter(|&distance| distance > record)
+        .count())
+}
 
 fn main() {
     let input = read_to_string("src/input/day06.txt").expect("Could not find input");
     let data = parse_input(&input).expect("Parsing must succeed");
 
     println!("The product of our victories is {}", part_one(&data));
+    println!(
+        "The number of chances at victory at the big race is {}",
+        part_two(&data).expect("The race must succeed!")
+    );
 }
 
 #[cfg(test)]
@@ -122,5 +144,13 @@ mod test {
         let data = parse_input(&input).expect("Parsing should succeed");
 
         assert_eq!(part_one(&data), 288);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let input = read_to_string("src/input/day06-test.txt").expect("Could not find example");
+        let data = parse_input(&input).expect("Parsing should succeed");
+
+        assert_eq!(part_two(&data), Ok(71503));
     }
 }
