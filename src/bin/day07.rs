@@ -15,24 +15,29 @@ use advent_2023::ParseError;
 const JOKER: u32 = 10;
 
 #[derive(Clone, Debug, Eq)]
+/// A hand of cards, corresponding to a line of input.
 struct Hand {
     pub bid: u32,
     pub cards: [u32; 5],
 }
 
 impl Hand {
+    /// Get the type of hand described by this hand,
+    /// assuming the joker rule is not in play.
     fn hand_type(&self) -> HandType {
+        // Get a collection of all of the kinds of card in this hand.
         let card_types = HashSet::from(self.cards);
         let mut counts: Vec<_> = card_types
             .iter()
+            // For each card type, count how many times it shows up in the hand.
             .map(|kind| self.cards.iter().filter(|&card| card == kind).count())
             .collect();
         // Sort by frequency
         counts.sort();
         // Get the highest count first.
         counts.reverse();
-        // println!("Card counts for hand {:?} are {:?}", self.cards, counts);
-        let kind = match counts[0] {
+
+        match counts[0] {
             5 => HandType::FiveOfKind,
             4 => HandType::FourOfKind,
             // Check what comes next,
@@ -53,17 +58,20 @@ impl Hand {
             // then every card must be unique.
             1 => HandType::HighCard,
             _ => unreachable!("Invalid hand"),
-        };
-
-        // println!("Cards {:?} have hand {:?}", self.cards, kind);
-
-        kind
+        }
     }
 
+    /// Get the type of hand this hand describes,
+    /// assuming that jacks are wild and the
+    /// worst card.
+    ///
+    /// (Granted, this assumes that the Jack
+    /// is represented by a value of `0`, and
+    /// not the usual value of `10`.)
     fn joker_hand_type(&self) -> HandType {
+        // Separate the hand into jokers and non-jokers.
         let (jokers, cards): (Vec<_>, Vec<u32>) = self.cards.iter().partition(|&card| *card == 0);
 
-        // eprintln!("Jokers: {:?}, Cards: {:?}", jokers, cards);
         // I'm not sure why `into_iter` works while `iter` doesn't.
         let card_types = cards.into_iter().collect::<HashSet<u32>>();
         let mut counts: Vec<_> = card_types
@@ -81,7 +89,6 @@ impl Hand {
             return HandType::FiveOfKind;
         }
         let jokers = jokers.len();
-        // counts[0] += jokers.len();
 
         match counts[0] {
             5 => HandType::FiveOfKind,
@@ -152,7 +159,7 @@ impl Hand {
                 }
             }
             // If we have a one here,
-            // then every card must be unique,
+            // then every card must be unique
             // or a joker, so match on joker count.
             1 => match jokers {
                 4 => HandType::FiveOfKind,
@@ -183,6 +190,7 @@ impl PartialOrd for Hand {
     }
 }
 
+// This seemed a lot smarter when I only had part one to deal with.
 impl Ord for Hand {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.hand_type()
@@ -191,8 +199,7 @@ impl Ord for Hand {
     }
 }
 
-// impl PartialOrd for Hand
-// impl Ord for Hand
+
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 /// The types of hand a card can have.
@@ -201,19 +208,19 @@ impl Ord for Hand {
 /// information about the hand itself,
 /// because it's not actually very USEFUL.
 enum HandType {
-    // Five of a kind
+    /// Five of a kind
     FiveOfKind,
-    // Four of a kind
+    /// Four of a kind
     FourOfKind,
-    // Three of one, two of another
+    /// Three of one, two of another
     FullHouse,
-    // Three of a kind
+    /// Three of a kind
     ThreeOfKind,
-    // Two of one, two of another
+    /// Two of one, two of another
     TwoPair,
-    // Two of a kind
+    /// Two of a kind
     OnePair,
-    // Five different cards
+    /// Five different cards
     HighCard,
 }
 
@@ -227,6 +234,7 @@ fn parse_input(input: &str) -> Result<Vec<Hand>, ParseError> {
     input
         .lines()
         .map(|line| {
+            // Separate the cards and the bid.
             let Some((cards, bid)) = line.split_once(' ') else {
                 eprintln!("Line failed: {}", line);
                 return Err(ParseError::InvalidFormat("correct hand format"));
@@ -309,9 +317,15 @@ fn part_two(data: &[Hand]) -> usize {
             let cards = hand
                 .cards
                 .iter()
+                // For every card, check if it's a joker.
+                // If it is, replace it with a dummy zero
+                // to make sure the sorting works the way
+                // it's supposed to.
                 .map(|&card| if card == JOKER { 0 } else { card })
                 .collect::<Vec<_>>();
 
+            // This `expect` is safe since we didn't touch the length
+            // in the previous operation, but we did have to change the type.
             let cards = <[u32; 5]>::try_from(cards).expect("Operation should be infalliable");
 
             Hand {
@@ -330,9 +344,6 @@ fn part_two(data: &[Hand]) -> usize {
     // Reverse the cards.
     res.reverse();
 
-    res.iter().enumerate().for_each(|(idx, hand)| {
-        eprintln!("Hand {} is {:?}", idx, hand.cards);
-    });
     // Sum the ranks
     res.iter()
         .enumerate()
@@ -381,6 +392,8 @@ mod test {
         assert_eq!(part_two(&data), 5905);
     }
 
+    // Thank you Reddit user /u/LxsterGames for the 
+    // selection of pathological edge cases.
     const EDGE_CASES: &'static str = "2345A 1
 Q2KJJ 13
 Q2Q2Q 19
