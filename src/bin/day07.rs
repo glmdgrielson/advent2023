@@ -10,6 +10,10 @@ use std::fs::read_to_string;
 
 use advent_2023::ParseError;
 
+/// The special card that needs unique treatment.
+/// This corresponds to a Jack otherwise.
+const JOKER: u32 = 10;
+
 #[derive(Clone, Debug, Eq)]
 struct Hand {
     pub bid: u32,
@@ -54,6 +58,116 @@ impl Hand {
         // println!("Cards {:?} have hand {:?}", self.cards, kind);
 
         kind
+    }
+
+    fn joker_hand_type(&self) -> HandType {
+        let (jokers, cards): (Vec<_>, Vec<u32>) = self.cards.iter().partition(|&card| *card == 0);
+
+        // eprintln!("Jokers: {:?}, Cards: {:?}", jokers, cards);
+        // I'm not sure why `into_iter` works while `iter` doesn't.
+        let card_types = cards.into_iter().collect::<HashSet<u32>>();
+        let mut counts: Vec<_> = card_types
+            .iter()
+            .map(|kind| self.cards.iter().filter(|&card| card == kind).count())
+            .collect();
+        // Sort by frequency
+        counts.sort();
+        // Get the highest count first.
+        counts.reverse();
+
+        // If EVERY card is a joker, continuing
+        // will panic, so bail out here instead.
+        if jokers.len() == 5 {
+            return HandType::FiveOfKind;
+        }
+        let jokers = jokers.len();
+        // counts[0] += jokers.len();
+
+        match counts[0] {
+            5 => HandType::FiveOfKind,
+            4 => {
+                if jokers == 1 {
+                    HandType::FiveOfKind
+                } else {
+                    HandType::FourOfKind
+                }
+            }
+            3 => {
+                // If every other card is a joker,
+                // the match below is going to panic,
+                // so we need to check for it here.
+                if jokers == 2 {
+                    HandType::FiveOfKind
+                } else {
+                    // Check what comes next,
+                    // because this could be a full
+                    // house or a three of a kind.
+                    match counts[1] {
+                        // All cards are accounted for.
+                        2 => HandType::FullHouse,
+                        1 => {
+                            // Three of one, one of another,
+                            // check to see if we have a joker.
+                            if jokers == 1 {
+                                HandType::FourOfKind
+                            } else {
+                                HandType::ThreeOfKind
+                            }
+                        }
+                        _ => unreachable!("Invalid hand"),
+                    }
+                }
+            }
+            // If we have a pair, check to find another one.
+            2 => {
+                // If every other card is a joker,
+                // that match is going to panic,
+                if jokers == 3 {
+                    HandType::FiveOfKind
+                } else {
+                    match counts[1] {
+                        2 => {
+                            // Two pairs, which is a full
+                            // house if we have a joker!
+                            if jokers == 1 {
+                                HandType::FullHouse
+                            } else {
+                                HandType::TwoPair
+                            }
+                        }
+                        // Three cards accounted for,
+                        // what about the other two?
+                        1 => match jokers {
+                            // Two, one, and two jokers
+                            2 => HandType::FourOfKind,
+                            // Two, one, a joker, and another one
+                            1 => HandType::ThreeOfKind,
+                            // Two match and every other
+                            // card is unique and not a joker
+                            0 => HandType::OnePair,
+                            _ => unreachable!("Invalid hand"),
+                        },
+                        _ => unreachable!("Invalid hand"),
+                    }
+                }
+            }
+            // If we have a one here,
+            // then every card must be unique,
+            // or a joker, so match on joker count.
+            1 => match jokers {
+                4 => HandType::FiveOfKind,
+                3 => HandType::FourOfKind,
+                2 => HandType::ThreeOfKind,
+                1 => HandType::OnePair,
+                0 => HandType::HighCard,
+                _ => unreachable!("Invalid hand"),
+            },
+            // EVERY card is a joker,
+            // which is technically
+            // five of a kind
+            0 => HandType::FiveOfKind,
+            _ => unreachable!("Invalid hand"),
+        }
     }
 }
 
@@ -177,9 +291,53 @@ fn part_one(data: &[Hand]) -> usize {
         .sum()
 }
 
-#[allow(dead_code)]
-fn part_two(data: &[Hand]) {
-    unimplemented!("Part one incomplete!");
+/// Part 2
+/// ------
+///
+/// This is ALMOST the same question as part 1,
+/// but with a catch: all of the jacks are now
+/// jokers, which mean that they contribute to
+/// whatever value makes the most points. The
+/// question is the same: what's our score?
+fn part_two(data: &[Hand]) -> usize {
+    let mut res = data.to_vec();
+
+    // Turn the Jokers into zeros.
+    res = res
+        .iter()
+        .map(|hand| {
+            let cards = hand
+                .cards
+                .iter()
+                .map(|&card| if card == JOKER { 0 } else { card })
+                .collect::<Vec<_>>();
+
+            let cards = <[u32; 5]>::try_from(cards).expect("Operation should be infalliable");
+
+            Hand {
+                bid: hand.bid,
+                cards,
+            }
+        })
+        .collect();
+
+    // Sort the hands as described by Part 2.
+    res.sort_by(|one, two| {
+        one.joker_hand_type()
+            .cmp(&two.joker_hand_type())
+            .then(two.cards.cmp(&one.cards))
+    });
+    // Reverse the cards.
+    res.reverse();
+
+    res.iter().enumerate().for_each(|(idx, hand)| {
+        eprintln!("Hand {} is {:?}", idx, hand.cards);
+    });
+    // Sum the ranks
+    res.iter()
+        .enumerate()
+        .map(|(idx, hand)| (idx + 1) * (hand.bid as usize))
+        .sum()
 }
 
 fn main() {
@@ -187,6 +345,7 @@ fn main() {
     let data = parse_input(&input).expect("Parsing failed");
 
     println!("Total winnings are {}", part_one(&data));
+    println!("Total winnings with jokers are {}", part_two(&data));
 }
 
 #[cfg(test)]
@@ -212,5 +371,40 @@ mod test {
         let data = parse_input(&example).expect("Data failed to parse");
 
         assert_eq!(part_one(&data), 6440);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let example = read_to_string("src/input/day07-test.txt").expect("Could not read example");
+        let data = parse_input(&example).expect("Data failed to parse");
+
+        assert_eq!(part_two(&data), 5905);
+    }
+
+    const EDGE_CASES: &'static str = "2345A 1
+Q2KJJ 13
+Q2Q2Q 19
+T3T3J 17
+T3Q33 11
+2345J 3
+J345A 2
+32T3K 5
+T55J5 29
+KK677 7
+KTJJT 34
+QQQJA 31
+JJJJJ 37
+JAAAA 43
+AAAAJ 59
+AAAAA 61
+2AAAA 23
+2JJJJ 53
+JJJJ2 41";
+
+    #[test]
+    fn test_part_two_edge_cases() {
+        let data = parse_input(EDGE_CASES).expect("Edge cases failed to parse");
+
+        assert_eq!(part_two(&data), 6839);
     }
 }
