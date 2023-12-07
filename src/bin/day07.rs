@@ -5,14 +5,56 @@
 //!
 //! We're playing poker today, folks!
 
+use std::collections::HashSet;
 use std::fs::read_to_string;
 
 use advent_2023::ParseError;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 struct Hand {
     pub bid: u32,
     pub cards: [u32; 5],
+}
+
+impl Hand {
+    fn hand_type(&self) -> HandType {
+        let card_types = HashSet::from(self.cards);
+        let mut counts: Vec<_> = card_types
+            .iter()
+            .map(|kind| self.cards.iter().filter(|&card| card == kind).count())
+            .collect();
+        // Sort by frequency
+        counts.sort();
+        // Get the highest count first.
+        counts.reverse();
+        // println!("Card counts for hand {:?} are {:?}", self.cards, counts);
+        let kind = match counts[0] {
+            5 => HandType::FiveOfKind,
+            4 => HandType::FourOfKind,
+            // Check what comes next,
+            // because this could be a full
+            // house or a three of a kind.
+            3 => match counts[1] {
+                2 => HandType::FullHouse,
+                1 => HandType::ThreeOfKind,
+                _ => unreachable!("Invalid hand"),
+            },
+            // If we have a pair, check to find another one.
+            2 => match counts[1] {
+                2 => HandType::TwoPair,
+                1 => HandType::OnePair,
+                _ => unreachable!("Invalid hand"),
+            },
+            // If we have a one here,
+            // then every card must be unique.
+            1 => HandType::HighCard,
+            _ => unreachable!("Invalid hand"),
+        };
+
+        // println!("Cards {:?} have hand {:?}", self.cards, kind);
+
+        kind
+    }
 }
 
 impl PartialEq for Hand {
@@ -21,17 +63,43 @@ impl PartialEq for Hand {
     }
 }
 
+impl PartialOrd for Hand {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Hand {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.hand_type()
+            .cmp(&other.hand_type())
+            .then(other.cards.cmp(&self.cards))
+    }
+}
+
 // impl PartialOrd for Hand
 // impl Ord for Hand
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+/// The types of hand a card can have.
+///
+/// Note that this does not store any
+/// information about the hand itself,
+/// because it's not actually very USEFUL.
 enum HandType {
+    // Five of a kind
     FiveOfKind,
+    // Four of a kind
     FourOfKind,
+    // Three of one, two of another
     FullHouse,
+    // Three of a kind
     ThreeOfKind,
+    // Two of one, two of another
     TwoPair,
+    // Two of a kind
     OnePair,
+    // Five different cards
     HighCard,
 }
 
@@ -46,6 +114,7 @@ fn parse_input(input: &str) -> Result<Vec<Hand>, ParseError> {
         .lines()
         .map(|line| {
             let Some((cards, bid)) = line.split_once(' ') else {
+                eprintln!("Line failed: {}", line);
                 return Err(ParseError::InvalidFormat("correct hand format"));
             };
             let cards = cards
@@ -91,8 +160,21 @@ fn parse_input(input: &str) -> Result<Vec<Hand>, ParseError> {
 /// the rank equal to the number of elements
 /// in the group. The answer is the sum of
 /// all of the hands.
-fn part_one(data: &[Hand]) -> u32 {
-    unimplemented!();
+fn part_one(data: &[Hand]) -> usize {
+    let mut res = data.to_vec();
+    // Sort the hands.
+    res.sort();
+    // Make the first hand the weakest.
+    res.reverse();
+    // res.iter().enumerate().for_each(|(idx, hand)| {
+    //     println!("Hand {} is {:?}", idx, hand.cards);
+    // });
+    res.iter()
+        // Get the rank of each hand...
+        .enumerate()
+        // ...and multiply it by the bid.
+        .map(|(idx, hand)| (idx + 1) * (hand.bid as usize))
+        .sum()
 }
 
 #[allow(dead_code)]
@@ -102,7 +184,9 @@ fn part_two(data: &[Hand]) {
 
 fn main() {
     let input = read_to_string("src/input/day07.txt").expect("Could not read input");
-    let data = parse_input(&input);
+    let data = parse_input(&input).expect("Parsing failed");
+
+    println!("Total winnings are {}", part_one(&data));
 }
 
 #[cfg(test)]
@@ -120,5 +204,13 @@ mod test {
         };
 
         assert_eq!(vec![expected], actual);
+    }
+
+    #[test]
+    fn test_part_one() {
+        let example = read_to_string("src/input/day07-test.txt").expect("Could not read example");
+        let data = parse_input(&example).expect("Data failed to parse");
+
+        assert_eq!(part_one(&data), 6440);
     }
 }
