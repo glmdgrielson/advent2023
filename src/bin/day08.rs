@@ -119,7 +119,7 @@ fn part_one(data: &Map) -> Option<usize> {
         // BEFORE we check the destination.
         steps += 1;
         // Are we there yet?
-        if *curr == String::from("ZZZ") {
+        if *curr == "ZZZ" {
             break;
         }
     }
@@ -146,43 +146,46 @@ fn part_two(data: &Map) -> Option<u64> {
 
     // Right, so this is a BIG hack.
     // TODO: Find a solution that doesn't rely on unspoken assumptions.
-    // 
+    //
     // Every path from an A node to a Z node forms a cycle.
     // If we can find all such cycles, then the number
     // of steps the problem requires is just the least common
     // multiple of the lengths of each cycle.
     //
     // So we just need to find the cycles.
-    let res = curr.iter().map(|&name| {
-        let mut curr = &name.clone();
-        let mut steps = 0;
+    let res = curr
+        .iter()
+        .map(|&name| {
+            let mut curr = &name.clone();
+            let mut steps = 0;
 
-        // Again, we loop the directions infinitely
-        // in case we run out midway through.
-        for direction in data.directions.iter().cycle() {
-            // Check that the node we're at actually exists.
-            let Some(node) = data.network.get(curr) else {
-                return None;
-            };
-            // Replace the node we're at
-            // with the node we're going to.
-            curr = match *direction {
-                Direction::Left => &node.0,
-                Direction::Right => &node.1,
-            };
-            // Increment the step counter
-            // BEFORE we consider ending the loop.
-            steps += 1;
-            // Check if we're at a Z node.
-            if curr.ends_with('Z') {
-                break;
+            // Again, we loop the directions infinitely
+            // in case we run out midway through.
+            for direction in data.directions.iter().cycle() {
+                // Check that the node we're at actually exists.
+                let Some(node) = data.network.get(curr) else {
+                    return None;
+                };
+                // Replace the node we're at
+                // with the node we're going to.
+                curr = match *direction {
+                    Direction::Left => &node.0,
+                    Direction::Right => &node.1,
+                };
+                // Increment the step counter
+                // BEFORE we consider ending the loop.
+                steps += 1;
+                // Check if we're at a Z node.
+                if curr.ends_with('Z') {
+                    break;
+                }
             }
-        }
 
-        Some(steps)
-    })
-    // Remove any elements that failed to navigate.
-    .filter_map(|total| total).collect::<Vec<u64>>();
+            Some(steps)
+        })
+        // Remove any elements that failed to navigate.
+        .flatten()
+        .collect::<Vec<u64>>();
 
     // Double check that every node navigated correctly.
     if res.len() != curr.len() {
@@ -229,7 +232,10 @@ fn main() {
     let steps = part_one(&data).expect("Network traversal failed");
     println!("Number of steps from AAA to ZZZ is {}", steps);
 
-    println!("Number of steps for ghost route is {}", part_two(&data).expect("Traversal should complete"));
+    println!(
+        "Number of steps for ghost route is {}",
+        part_two(&data).expect("Traversal should complete")
+    );
 }
 
 #[cfg(test)]
