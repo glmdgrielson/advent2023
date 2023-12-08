@@ -14,14 +14,23 @@ use std::fs::read_to_string;
 use advent_2023::ParseError;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// An enum to represent what could
+/// probably be a boolean, but is
+/// more descriptive in this format.
 enum Direction {
     Left,
     Right,
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// The map, as described by the input.
 struct Map {
+    /// The list of directions we are to take.
     pub directions: Vec<Direction>,
+    /// A mapping of node names to the two paths
+    /// that node connects to. The first element
+    /// in the value tuple is the left path,
+    /// and the second is the right path.
     pub network: HashMap<String, (String, String)>,
 }
 
@@ -35,6 +44,7 @@ fn parse_input(input: &str) -> Result<Map, ParseError> {
     let Some((directions, network)) = input.split_once("\n\n") else {
         return Err(ParseError::InvalidFormat("two sections of input"));
     };
+    // Map the direction characters to direction values.
     let directions = directions
         .chars()
         .map(|ch| match ch {
@@ -42,6 +52,7 @@ fn parse_input(input: &str) -> Result<Map, ParseError> {
             'R' => Ok(Direction::Right),
             _ => Err(ParseError::InvalidFormat("proper direction")),
         })
+        // Check to see if there are errors and bail out if needed.
         .collect::<Result<Vec<Direction>, ParseError>>()?;
 
     let network = network
@@ -64,6 +75,7 @@ fn parse_input(input: &str) -> Result<Map, ParseError> {
                 return Err(ParseError::InvalidFormat("comma separated paths"));
             };
 
+            // Convert the &str to String.
             Ok((name.to_owned(), (left.to_owned(), right.to_owned())))
         })
         .collect::<Result<HashMap<String, (String, String)>, ParseError>>()?;
@@ -89,15 +101,24 @@ fn part_one(data: &Map) -> Option<usize> {
     // How many steps we've taken.
     let mut steps = 0;
 
+    // Since we may run out of directions,
+    // we infinitely loop them here. This means
+    // that the `break` is entirely vital, since
+    // without it, this would loop forever.
     for direction in data.directions.iter().cycle() {
+        // Check that there's a node here, otherwise fail.
         let Some(node) = data.network.get(curr) else {
             return None;
         };
+        // Replace the current node with the one down the path.
         curr = match *direction {
             Direction::Left => &node.0,
             Direction::Right => &node.1,
         };
+        // Increment the step counter
+        // BEFORE we check the destination.
         steps += 1;
+        // Are we there yet?
         if *curr == String::from("ZZZ") {
             break;
         }
@@ -123,35 +144,63 @@ fn part_two(data: &Map) -> Option<u64> {
         .filter(|name| name.ends_with('A'))
         .collect::<Vec<_>>();
 
+    // Right, so this is a BIG hack.
+    // TODO: Find a solution that doesn't rely on unspoken assumptions.
+    // 
+    // Every path from an A node to a Z node forms a cycle.
+    // If we can find all such cycles, then the number
+    // of steps the problem requires is just the least common
+    // multiple of the lengths of each cycle.
+    //
+    // So we just need to find the cycles.
     let res = curr.iter().map(|&name| {
         let mut curr = &name.clone();
         let mut steps = 0;
 
+        // Again, we loop the directions infinitely
+        // in case we run out midway through.
         for direction in data.directions.iter().cycle() {
+            // Check that the node we're at actually exists.
             let Some(node) = data.network.get(curr) else {
                 return None;
             };
+            // Replace the node we're at
+            // with the node we're going to.
             curr = match *direction {
                 Direction::Left => &node.0,
                 Direction::Right => &node.1,
             };
+            // Increment the step counter
+            // BEFORE we consider ending the loop.
             steps += 1;
+            // Check if we're at a Z node.
             if curr.ends_with('Z') {
                 break;
             }
         }
 
         Some(steps)
-    }).filter_map(|total| total).collect::<Vec<u64>>();
+    })
+    // Remove any elements that failed to navigate.
+    .filter_map(|total| total).collect::<Vec<u64>>();
 
+    // Double check that every node navigated correctly.
     if res.len() != curr.len() {
         None
     } else {
+        // Get the least common multiple of all of the cycles.
+        //
+        // This SHOULD be a call to `reduce`, but the lifetimes
+        // were too much of a mess for me to want to put up with.
         Some(res.iter().fold(1, |one, two| lcm(one, *two)))
     }
 }
 
 /// Greatest common divisor
+///
+/// This is kind of a dumb but
+/// simple way to go about it,
+/// but it certainly works.
 fn gcd(a: u64, b: u64) -> u64 {
     let mut one = a;
     let mut two = b;
@@ -166,6 +215,9 @@ fn gcd(a: u64, b: u64) -> u64 {
 }
 
 /// Least common multiple
+///
+/// The multiplication here is why Part 2
+/// returns a `u64`; it overflowed on `u32`.
 fn lcm(one: u64, two: u64) -> u64 {
     (one * two) / gcd(one, two)
 }
