@@ -106,9 +106,68 @@ fn part_one(data: &Map) -> Option<usize> {
     Some(steps)
 }
 
-#[allow(unused)]
-fn part_two(data: &Map) {
-    unimplemented!("Part one incomplete");
+/// Part 2
+/// ------
+///
+/// So going from point AAA to point ZZZ
+/// was a total bust. Let's try something
+/// else: there's a one to one mapping of
+/// '??A' nodes to '??Z' nodes. How long
+/// until we get from all of the A nodes
+/// to only Z nodes?
+fn part_two(data: &Map) -> Option<u64> {
+    // Get the list of A nodes.
+    let curr = data
+        .network
+        .keys()
+        .filter(|name| name.ends_with('A'))
+        .collect::<Vec<_>>();
+
+    let res = curr.iter().map(|&name| {
+        let mut curr = &name.clone();
+        let mut steps = 0;
+
+        for direction in data.directions.iter().cycle() {
+            let Some(node) = data.network.get(curr) else {
+                return None;
+            };
+            curr = match *direction {
+                Direction::Left => &node.0,
+                Direction::Right => &node.1,
+            };
+            steps += 1;
+            if curr.ends_with('Z') {
+                break;
+            }
+        }
+
+        Some(steps)
+    }).filter_map(|total| total).collect::<Vec<u64>>();
+
+    if res.len() != curr.len() {
+        None
+    } else {
+        Some(res.iter().fold(1, |one, two| lcm(one, *two)))
+    }
+}
+
+/// Greatest common divisor
+fn gcd(a: u64, b: u64) -> u64 {
+    let mut one = a;
+    let mut two = b;
+
+    while two != 0 {
+        let rem = one % two;
+        one = two;
+        two = rem;
+    }
+
+    one
+}
+
+/// Least common multiple
+fn lcm(one: u64, two: u64) -> u64 {
+    (one * two) / gcd(one, two)
 }
 
 fn main() {
@@ -117,6 +176,8 @@ fn main() {
 
     let steps = part_one(&data).expect("Network traversal failed");
     println!("Number of steps from AAA to ZZZ is {}", steps);
+
+    println!("Number of steps for ghost route is {}", part_two(&data).expect("Traversal should complete"));
 }
 
 #[cfg(test)]
@@ -155,4 +216,6 @@ mod test {
             "This uses the second example, check the test data"
         );
     }
+
+    // No test for part two here because it would require another input file.
 }
