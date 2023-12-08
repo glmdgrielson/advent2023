@@ -80,8 +80,30 @@ fn parse_input(input: &str) -> Result<Map, ParseError> {
 /// Given the set of directions we were given,
 /// how many steps does it take to get from
 /// point "AAA" to point "ZZZ"?
-fn part_one(data: &Map) -> usize {
-    unimplemented!();
+///
+/// Returns `None` if the network traversal
+/// encounters an error.
+fn part_one(data: &Map) -> Option<usize> {
+    // The current node.
+    let mut curr = &String::from("AAA");
+    // How many steps we've taken.
+    let mut steps = 0;
+
+    for direction in data.directions.iter().cycle() {
+        let Some(node) = data.network.get(curr) else {
+            return None;
+        };
+        curr = match *direction {
+            Direction::Left => &node.0,
+            Direction::Right => &node.1,
+        };
+        steps += 1;
+        if *curr == String::from("ZZZ") {
+            break;
+        }
+    }
+
+    Some(steps)
 }
 
 #[allow(unused)]
@@ -91,7 +113,10 @@ fn part_two(data: &Map) {
 
 fn main() {
     let input = read_to_string("src/input/day08.txt").expect("Could not read data");
-    let data = parse_input(&input);
+    let data = parse_input(&input).expect("Parsing failed");
+
+    let steps = part_one(&data).expect("Network traversal failed");
+    println!("Number of steps from AAA to ZZZ is {}", steps);
 }
 
 #[cfg(test)]
@@ -115,6 +140,18 @@ mod test {
         assert_eq!(
             node,
             &("BBB".to_string(), "BBB".to_string()),
+            "This uses the second example, check the test data"
+        );
+    }
+
+    #[test]
+    fn test_part_one() {
+        let input = read_to_string("src/input/day08-test.txt").expect("Could not read example");
+        let data = parse_input(&input).expect("Parsing failed");
+
+        assert_eq!(
+            part_one(&data),
+            Some(6),
             "This uses the second example, check the test data"
         );
     }
