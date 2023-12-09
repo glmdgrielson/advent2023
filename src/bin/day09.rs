@@ -38,6 +38,36 @@ impl History {
         }
         last.iter().sum()
     }
+
+    fn prev(&self) -> i32 {
+        // let Some(&head) = self.0.first() else {
+        //     unreachable!("Invalid input received");
+        // };
+        //
+        // let mut heads = vec![head];
+        // let mut diff = self.0.clone();
+        // loop {
+        //     if diff.iter().all(|&val| val == 0) {
+        //         break;
+        //     }
+        //
+        //     diff = diff
+        //         .windows(2)
+        //         .map(|window| window[1] - window[0])
+        //         .collect();
+        //
+        //     let Some(&new_head) = diff.first() else {
+        //         unreachable!("History should not reduce to empty");
+        //     };
+        //     heads.push(new_head);
+        // }
+        //
+        // heads.iter().fold(0, |acc, val| val - acc)
+        let mut data = self.0.clone();
+        data.reverse();
+
+        History(data).next()
+    }
 }
 
 /// Input consists of a series of sequences,
@@ -56,13 +86,33 @@ fn parse_input(input: &str) -> Result<Vec<History>, ParseError> {
         .collect()
 }
 
+/// Part 1
+/// ------
+///
+/// For each sequence in the report, find
+/// out what the next item should be. It's
+/// gonna take a bit of calculus, since we
+/// need to figure out the rate at which
+/// the sequences grow.
+///
+/// When we've found out what all of the
+/// sequences should be, we find the sum.
 fn part_one(data: &[History]) -> i32 {
     data.iter().map(|history| history.next()).sum()
 }
 
-#[allow(unused)]
-fn part_two(data: &[History]) {
-    unimplemented!();
+/// Part 2
+/// ------
+///
+/// Well, since part one was so easy, surely
+/// it's safe to apply the same logic backwards
+/// right? ...right? Why do I hear a crying
+/// engineer in the distance?
+///
+/// Find the sum of the hypothetical zeroth
+/// entry in each of the provided sequences.
+fn part_two(data: &[History]) -> i32 {
+    data.iter().map(|history| history.prev()).sum()
 }
 
 fn main() {
@@ -70,6 +120,7 @@ fn main() {
     let data = parse_input(&input).expect("Parsing should succeed");
 
     println!("Sum of next steps is {}", part_one(&data));
+    println!("Sum of hypothetical previous steps is {}", part_two(&data));
 }
 
 #[cfg(test)]
@@ -91,5 +142,23 @@ mod test {
 
         assert_eq!(data[0].next(), 18);
         assert_eq!(data[1].next(), 28);
+    }
+
+    #[test]
+    fn test_history_prev() {
+        let input = read_to_string("src/input/day09-test.txt").expect("Could not read example");
+        let data = parse_input(&input).expect("Example should parse successfully");
+
+        assert_eq!(data[0].prev(), -3);
+        assert_eq!(data[1].prev(), 0);
+        assert_eq!(data[2].prev(), 5);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let input = read_to_string("src/input/day09-test.txt").expect("Could not read example");
+        let data = parse_input(&input).expect("Example should parse successfully");
+
+        assert_eq!(part_two(&data), 2);
     }
 }
