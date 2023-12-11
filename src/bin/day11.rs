@@ -55,6 +55,20 @@ impl Image {
             galaxies,
         }
     }
+
+    fn empty_rows(&self) -> Vec<usize> {
+        self.map
+            .rows()
+            .filter(|idx| self.map.row_iter(*idx).all(|is_galaxy| !is_galaxy))
+            .collect()
+    }
+
+    fn empty_columns(&self) -> Vec<usize> {
+        self.map
+            .columns()
+            .filter(|idx| self.map.column_iter(*idx).all(|is_galaxy| !is_galaxy))
+            .collect()
+    }
 }
 
 #[inline]
@@ -104,14 +118,18 @@ fn parse_input(input: &str) -> Result<Image, ParseError> {
 /// from one galaxy to another and sum them up.
 fn part_one(data: &Image) -> usize {
     let image = data.expand();
-    let last = image.galaxies.len() - 1;
+    connection_distance(&image.galaxies)
+}
 
-    let res = image.galaxies[0..=last]
+fn connection_distance(galaxies: &[GridIndex]) -> usize {
+    let last = galaxies.len() - 1;
+
+    let res = galaxies[0..=last]
         .iter()
         .enumerate()
         .map(|(idx, galaxy)| {
-            (idx..image.galaxies.len())
-                .map(|idx| index_distance(*galaxy, image.galaxies[idx]))
+            (idx..galaxies.len())
+                .map(|idx| index_distance(*galaxy, galaxies[idx]))
                 .sum::<usize>()
         })
         .sum();
@@ -119,16 +137,64 @@ fn part_one(data: &Image) -> usize {
     res
 }
 
-#[allow(unused)]
-fn part_two(data: &Image) {
-    todo!();
+fn part_two(data: &Image) -> usize {
+    let image = data;
+    let last = image.galaxies.len() - 1;
+
+    let res = image.galaxies[0..=last]
+        .iter()
+        .enumerate()
+        .map(|(idx, one)| {
+            (idx..image.galaxies.len())
+                .map(|idx| -> usize {
+                    let two = image.galaxies[idx];
+
+                    expanded_difference(*one, two, &image)
+                })
+                .sum::<usize>()
+        })
+        .sum();
+
+    res
+}
+
+const EXPANSION: usize = 1_000_000 - 1;
+
+fn expanded_difference(one: GridIndex, two: GridIndex, image: &Image) -> usize {
+    let empty_rows = image.empty_rows();
+    let empty_columns = image.empty_columns();
+
+    let row_diff_one = empty_rows.iter().filter(|&idx| *idx < one.row()).count();
+    let row_diff_two = empty_rows.iter().filter(|&idx| *idx < two.row()).count();
+    let row_one = one.row() + row_diff_one * EXPANSION;
+    let row_two = two.row() + row_diff_two * EXPANSION;
+
+    let col_diff_one = empty_columns
+        .iter()
+        .filter(|&idx| *idx < one.column())
+        .count();
+    let col_diff_two = empty_columns
+        .iter()
+        .filter(|&idx| *idx < two.column())
+        .count();
+    let col_one = one.column() + col_diff_one * EXPANSION;
+    let col_two = two.column() + col_diff_two * EXPANSION;
+
+    row_one.abs_diff(row_two) + col_one.abs_diff(col_two)
 }
 
 fn main() {
     let input = read_to_string("src/input/day11.txt").expect("Could not read input");
     let data = parse_input(&input).expect("Parsing failed");
 
-    println!("The sum distance of all of the galaxies is {}", part_one(&data));
+    println!(
+        "The sum distance of all of the galaxies is {}",
+        part_one(&data)
+    );
+    println!(
+        "The sum distance of all galaxies in massive space is {}",
+        part_two(&data)
+    );
 }
 
 #[cfg(test)]
@@ -166,5 +232,16 @@ mod test {
         let data = parse_input(&input).expect("Parsing should succeed");
 
         assert_eq!(part_one(&data), 374);
+    }
+
+    // No test for part two because we aren't actually given that information.
+
+    #[test]
+    #[ignore = "Relying on external source for this one, number may be wrong"]
+    fn test_part_two() {
+        let input = read_to_string("src/input/day11-test.txt").expect("Could not read input");
+        let data = parse_input(&input).expect("Parsing should succeed");
+
+        assert_eq!(part_two(&data), 82_000_210);
     }
 }
