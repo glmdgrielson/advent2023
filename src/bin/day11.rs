@@ -15,26 +15,48 @@ use simple_grid::{Grid, GridIndex};
 use advent_2023::ParseError;
 
 #[derive(Clone, Debug, PartialEq)]
+/// The data this puzzle uses.
 struct Image {
+    /// The initial map of galaxies.
+    ///
+    /// A cell is true if there is a galaxy there,
+    /// and false if there is not a galaxy there.
     pub map: Grid<bool>,
+    /// A list of all of the galaxies we have.
+    ///
+    /// This should exactly match the indices
+    /// in `map` that have a `true` value.
     pub galaxies: Vec<GridIndex>,
 }
 
 impl Image {
+    /// Expand this space.
+    ///
+    /// This uses the Part 1 assumption that
+    /// each empty row and column gets expanded
+    /// exactly once. This is as such entirely
+    /// useless for part 2.
     fn expand(&self) -> Self {
         let width = self.map.width();
 
         let mut grid = self.map.clone();
 
+        // Find the empty rows and store them in right-to-left order.
         let empty_rows: Vec<usize> = grid
             .rows()
             .filter(|idx| grid.row_iter(*idx).all(|is_galaxy| !is_galaxy))
             .rev()
             .collect();
         for row in empty_rows {
+            // Insert the rows. If we hadn't reversed
+            // `empty_rows`, this would add rows in the wrong places.
+            // Learned that the hard way.
             grid.insert_row(row, vec![false; width]);
         }
 
+        // This is the same algorithm but for columns.
+        
+        // Make sure we get the CURRENT height after adding rows.
         let height = grid.height();
         let empty_columns: Vec<usize> = grid
             .columns()
@@ -45,6 +67,7 @@ impl Image {
             grid.insert_column(column, vec![false; height]);
         }
 
+        // Get the new galaxy positions.
         let galaxies = grid
             .cells_with_indices_iter()
             .filter_map(|(idx, is_galaxy)| if *is_galaxy { Some(idx) } else { None })
@@ -56,6 +79,7 @@ impl Image {
         }
     }
 
+    // Get the indices of rows that expand.
     fn empty_rows(&self) -> Vec<usize> {
         self.map
             .rows()
@@ -63,6 +87,7 @@ impl Image {
             .collect()
     }
 
+    // Get the indices of columns that expand.
     fn empty_columns(&self) -> Vec<usize> {
         self.map
             .columns()
@@ -72,6 +97,9 @@ impl Image {
 }
 
 #[inline]
+/// Find the [Manhattan distance][taxi] of two indices.
+///
+/// [taxi]: https://en.wikipedia.org/wiki/Taxicab_geometry 
 fn index_distance(one: GridIndex, two: GridIndex) -> usize {
     one.row().abs_diff(two.row()) + one.column().abs_diff(two.column())
 }
@@ -86,6 +114,7 @@ fn parse_input(input: &str) -> Result<Image, ParseError> {
         .map(|line| {
             let res = line
                 .chars()
+                // Map characters to whether they have galaxies.
                 .map(|ch| match ch {
                     '#' => Ok(true),
                     '.' => Ok(false),
@@ -100,6 +129,7 @@ fn parse_input(input: &str) -> Result<Image, ParseError> {
         grid.push_row(row);
     }
 
+    // Get the list of cells with galaxies.
     let stars = grid
         .cells_with_indices_iter()
         .filter_map(|(idx, is_galaxy)| if *is_galaxy { Some(idx) } else { None })
@@ -118,18 +148,14 @@ fn parse_input(input: &str) -> Result<Image, ParseError> {
 /// from one galaxy to another and sum them up.
 fn part_one(data: &Image) -> usize {
     let image = data.expand();
-    connection_distance(&image.galaxies)
-}
+    let last = image.galaxies.len() - 1;
 
-fn connection_distance(galaxies: &[GridIndex]) -> usize {
-    let last = galaxies.len() - 1;
-
-    let res = galaxies[0..=last]
+    let res = image.galaxies[0..=last]
         .iter()
         .enumerate()
         .map(|(idx, galaxy)| {
-            (idx..galaxies.len())
-                .map(|idx| index_distance(*galaxy, galaxies[idx]))
+            (idx..image.galaxies.len())
+                .map(|idx| index_distance(*galaxy, image.galaxies[idx]))
                 .sum::<usize>()
         })
         .sum();
@@ -158,17 +184,22 @@ fn part_two(data: &Image) -> usize {
     res
 }
 
+/// The number of rows or columns to add when expanding for Part 2.
 const EXPANSION: usize = 1_000_000 - 1;
 
+/// Expand coordinates and return their distance.
 fn expanded_difference(one: GridIndex, two: GridIndex, image: &Image) -> usize {
     let empty_rows = image.empty_rows();
     let empty_columns = image.empty_columns();
 
+    // Check which rows we need to expand.
     let row_diff_one = empty_rows.iter().filter(|&idx| *idx < one.row()).count();
     let row_diff_two = empty_rows.iter().filter(|&idx| *idx < two.row()).count();
+    // Do an ad hoc expansion.
     let row_one = one.row() + row_diff_one * EXPANSION;
     let row_two = two.row() + row_diff_two * EXPANSION;
 
+    // Check which columns we need to expand.
     let col_diff_one = empty_columns
         .iter()
         .filter(|&idx| *idx < one.column())
@@ -177,9 +208,11 @@ fn expanded_difference(one: GridIndex, two: GridIndex, image: &Image) -> usize {
         .iter()
         .filter(|&idx| *idx < two.column())
         .count();
+    // Again, perform the ad hoc expansion.
     let col_one = one.column() + col_diff_one * EXPANSION;
     let col_two = two.column() + col_diff_two * EXPANSION;
 
+    // Get the distance of the now expanded coordinates.
     row_one.abs_diff(row_two) + col_one.abs_diff(col_two)
 }
 
