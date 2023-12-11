@@ -31,6 +31,32 @@ impl Maze {
         idx
     }
 
+    fn resolve_start(&self) -> Pipe {
+        let idx = self.find_start();
+        let north = idx
+            .up()
+            .is_some_and(|idx| self.0[idx].connects_south() == Some(true));
+        let south = idx
+            .down()
+            .is_some_and(|idx| self.0[idx].connects_north() == Some(true));
+        let east = idx
+            .right()
+            .is_some_and(|idx| self.0[idx].connects_west() == Some(true));
+        let west = idx
+            .left()
+            .is_some_and(|idx| self.0[idx].connects_east() == Some(true));
+
+        match (north, south, east, west) {
+            (true, true, _, _) => Pipe::NorthSouth,
+            (_, _, true, true) => Pipe::EastWest,
+            (true, _, true, _) => Pipe::NorthEast,
+            (true, _, _, true) => Pipe::NorthWest,
+            (_, true, true, _) => Pipe::SouthEast,
+            (_, true, _, true) => Pipe::SouthWest,
+            _ => unreachable!("Start pipe should have two neighbors"),
+        }
+    }
+
     fn pipe_neighbors(&self, idx: GridIndex) -> Option<(GridIndex, GridIndex)> {
         let pipe = &self.0[idx];
         match pipe {
@@ -233,6 +259,12 @@ enum Pipe {
     StartingPosition,
 }
 
+impl Default for Pipe {
+    fn default() -> Self {
+        Pipe::Ground
+    }
+}
+
 impl Pipe {
     /// Do we know if this pipe connects to the north?
     fn connects_north(&self) -> Option<bool> {
@@ -323,8 +355,27 @@ fn part_one(data: &Maze) -> Option<usize> {
 }
 
 #[allow(unused)]
-fn part_two(data: &Maze) {
-    unimplemented!();
+fn part_two(data: &Maze) -> Option<usize> {
+    let main_loop = data.find_loop()?;
+    let mut grid = Grid::new_default(data.0.width(), data.0.height());
+    for pipe in main_loop.into_iter() {
+        if data.0[pipe] == Pipe::StartingPosition {
+            grid[pipe] = data.resolve_start();
+        } else {
+            grid[pipe] = data.0[pipe].clone();
+        }
+    }
+
+    let mut inside = false;
+
+    Some(grid.into_iter().filter(|cell| match *cell {
+        Pipe::Ground => inside,
+        Pipe::NorthSouth | Pipe::NorthEast | Pipe::NorthWest => {
+            inside = !inside;
+            false
+        }
+        _ => false,
+    }).count())
 }
 
 fn main() {
@@ -333,6 +384,9 @@ fn main() {
 
     let one = part_one(&data).expect("Loop should exist");
     println!("Distance farthest from creature is {}", one);
+
+    let two = part_two(&data).expect("Loop should exist");
+    println!("Number of cells inside the loop is {}", two);
 }
 
 #[cfg(test)]
