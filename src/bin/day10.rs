@@ -243,8 +243,9 @@ impl Maze {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 enum Pipe {
+    #[default]
     /// Cell does not contain a pipe.
     Ground,
     NorthSouth,
@@ -257,12 +258,6 @@ enum Pipe {
     ///
     /// We do not know where this pipe connects _to._
     StartingPosition,
-}
-
-impl Default for Pipe {
-    fn default() -> Self {
-        Pipe::Ground
-    }
 }
 
 impl Pipe {
@@ -335,7 +330,7 @@ fn parse_input(input: &str) -> Result<Maze, ParseError> {
         .lines()
         .map(|line| {
             line.chars()
-                .map(|ch| Pipe::try_from(ch))
+                .map(Pipe::try_from)
                 .collect::<Result<Vec<Pipe>, ParseError>>()
         })
         .collect::<Result<Vec<Vec<Pipe>>, ParseError>>()?;

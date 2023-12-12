@@ -175,7 +175,7 @@ fn part_two(data: &Image) -> usize {
                 .map(|idx| -> usize {
                     let two = image.galaxies[idx];
 
-                    expanded_difference(*one, two, &image)
+                    expanded_difference(*one, two, image)
                 })
                 .sum::<usize>()
         })
