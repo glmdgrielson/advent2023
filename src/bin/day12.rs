@@ -24,6 +24,19 @@ enum SpringStatus {
     Okay,
 }
 
+impl TryFrom<char> for SpringStatus {
+    type Error = ParseError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            '.' => Ok(Self::Okay),
+            '#' => Ok(Self::Broken),
+            '?' => Ok(Self::Unknown),
+            _ => Err(ParseError::InvalidFormat("valid spring character")),
+        }
+    }
+}
+
 /// Input consists of a series of records.
 ///
 /// Each record consists of a line of characters,
@@ -34,7 +47,26 @@ enum SpringStatus {
 /// springs for that record, determined by
 /// the rules of Paint by Numbers puzzles.
 fn parse_input(input: &str) -> Result<Vec<Record>, ParseError> {
-    todo!();
+    input
+        .lines()
+        .map(|line| {
+            let Some((springs, errors)) = line.split_once(' ') else {
+                return Err(ParseError::InvalidFormat("proper record format"));
+            };
+
+            let springs = springs
+                .chars()
+                .map(SpringStatus::try_from)
+                .collect::<Result<Vec<_>, ParseError>>()?;
+
+            let errors = errors
+                .split(',')
+                .map(|err| err.parse().map_err(ParseError::ExpectedNumber))
+                .collect::<Result<Vec<usize>, ParseError>>()?;
+
+            Ok(Record { springs, errors })
+        })
+        .collect::<Result<Vec<Record>, ParseError>>()
 }
 
 fn part_one(data: &[Record]) -> u32 {
@@ -49,7 +81,6 @@ fn part_two(data: &[Record]) {
 fn main() {
     let input = read_to_string("src/input/day12.txt").expect("Could not load input");
     let data = parse_input(&input).expect("Parsing failed");
-
 }
 
 #[cfg(test)]
@@ -60,5 +91,20 @@ mod test {
     fn test_parse_input() {
         let input = read_to_string("src/input/day12-test.txt").expect("Could not load example");
         let data = parse_input(&input).expect("Parsing failed");
+
+        let expected = Record {
+            springs: vec![
+                SpringStatus::Unknown,
+                SpringStatus::Unknown,
+                SpringStatus::Unknown,
+                SpringStatus::Okay,
+                SpringStatus::Broken,
+                SpringStatus::Broken,
+                SpringStatus::Broken,
+            ],
+            errors: vec![1, 1, 3],
+        };
+
+        assert_eq!(expected, data[0]);
     }
 }
