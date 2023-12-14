@@ -19,18 +19,18 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Puzzle {
-    pub seeds: Vec<u32>,
+    pub seeds: Vec<u64>,
     pub mappings: Vec<Vec<Mapping>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 struct Mapping {
     /// The start of the destination range.
-    pub dest: u32,
+    pub dest: u64,
     /// The start of the source range, which comes SECOND.
-    pub src: u32,
+    pub src: u64,
     /// The length of both ranges.
-    pub len: u32,
+    pub len: u64,
 }
 
 #[derive(Error, Clone, Debug, PartialEq)]
@@ -54,7 +54,7 @@ fn parse_input(input: &str) -> Result<Puzzle, ParseError> {
     let seeds = seeds
         .split_whitespace()
         .map(|seed| seed.parse().map_err(ParseError::ParseFailed))
-        .collect::<Result<Vec<u32>, ParseError>>()?;
+        .collect::<Result<Vec<u64>, ParseError>>()?;
 
     let mappings = sections
         .trim()
@@ -96,11 +96,11 @@ fn parse_input(input: &str) -> Result<Puzzle, ParseError> {
 /// ------
 ///
 /// Which seed can we plant first?
-fn part_one(data: &Puzzle) -> Option<u32> {
+fn part_one(data: &Puzzle) -> Option<u64> {
     data.seeds.iter().map(|seed| map_seed(&data, *seed)).min()
 }
 
-fn map_seed(data: &Puzzle, seed: u32) -> u32 {
+fn map_seed(data: &Puzzle, seed: u64) -> u64 {
     data.mappings.iter().fold(seed, |loc, map| {
         let mapping = map.iter().find_map(|map| map_step(loc, map));
         // println!("Current value is: {:?}", mapping);
@@ -111,7 +111,7 @@ fn map_seed(data: &Puzzle, seed: u32) -> u32 {
     })
 }
 
-fn map_step(loc: u32, map: &Mapping) -> Option<u32> {
+fn map_step(loc: u64, map: &Mapping) -> Option<u64> {
     if loc >= map.src {
         let offset = loc - map.src;
         if offset < map.len {
@@ -131,7 +131,7 @@ fn map_step(loc: u32, map: &Mapping) -> Option<u32> {
 /// individual seeds. Oh no, we were handed
 /// a list of _ranges_ of seeds. Of these ranges,
 /// what's the location of the seed we're planting first?
-fn part_two(data: &Puzzle) -> u32 {
+fn part_two(data: &Puzzle) -> Option<u64> {
     let ranges = data
         .seeds
         .chunks_exact(2)
@@ -143,26 +143,76 @@ fn part_two(data: &Puzzle) -> u32 {
         })
         .collect::<Vec<_>>();
 
-    let res = data.mappings.iter().fold(ranges, |ranges, maps| {
-        // Split up the ranges.
-        let ranges = ranges.iter().flat_map(|range| {
-            let mut res = vec![];
+    let mut curr_ranges = ranges.clone();
+
+    for maps in data.mappings.iter() {
+        let mut new_ranges = vec![];
+
+        for range in curr_ranges.iter() {
             let mut curr = range.clone();
 
-            for map in maps {
-                if range.contains(&map.src) {}
+            for rule in maps {
+                let applies = curr.start <= curr.end
+                    && curr.start <= rule.src + rule.len
+                    && curr.end >= rule.src;
+
+                if applies {
+                    if curr.start < rule.src {
+                        // We start before the range.
+                        new_ranges.push(curr.start..rule.src);
+                        curr.start = rule.src;
+                        if curr.end < rule.src + rule.len {
+                            // We end within the range.
+                            let offset = curr.end - curr.start;
+                            new_ranges.push(rule.dest..rule.dest + offset);
+                            // This is a dud operation,
+                            // meant to ensure this range gets discarded.
+                            curr.start = curr.end + 1;
+                        } else {
+                            // We end outside of the range, so we stop here.
+                            new_ranges.push(rule.dest..rule.dest + rule.len);
+                            curr.start = rule.src + rule.len;
+                        }
+                    } else if curr.end < rule.src + rule.len {
+                        // We start and end inside of the range.
+                        let start = curr.start - rule.src;
+                        let end = curr.end - rule.src;
+                        new_ranges.push(rule.dest + start..rule.dest + end);
+                        // This is a dud operation, meant to clear this range.
+                        curr.start = curr.end + 1;
+                    } else {
+                        // We start within the range and end outside of it.
+                        let offset = curr.start - rule.src;
+                        new_ranges.push(rule.dest + offset..rule.dest + rule.len);
+                        curr.start = rule.src + rule.len;
+                    }
+                }
             }
 
-            res.push(curr);
-            res
-        }).collect();
-        ranges
-    });
+            // If there's still a range left, add it to the list.
+            if curr.start < curr.end {
+                new_ranges.push(curr.clone());
+            }
+        }
 
-    0
+        // new_ranges.sort_by_key(|range| range.start);
+        curr_ranges = new_ranges;
+    }
+
+    println!("{:?}", curr_ranges);
+    let starts = curr_ranges
+        .iter()
+        .map(|range| range.start)
+        .collect::<Vec<_>>();
+    if cfg!(not(test)) {
+        assert!(starts.contains(&60294664));
+    }
+    let min = curr_ranges.into_iter().min_by_key(|range| range.start);
+
+    min.map(|range| range.start)
 }
 
-fn split_range(range: &Range<u32>, map: &Mapping) -> Vec<Range<u32>> {
+fn split_range(range: &Range<u64>, map: &Mapping) -> Vec<Range<u64>> {
     vec![]
 }
 
@@ -173,7 +223,8 @@ fn main() {
     let one = part_one(&data).expect("Puzzle should have solution");
     println!("The shortest seed location is {}", one);
 
-    let two = part_two(&data);
+    let two = part_two(&data).expect("Ranges should exist");
+    assert_eq!(two, 60294664);
     println!("The earliest seed location with ranges is {}", two);
 }
 
@@ -244,6 +295,6 @@ mod test {
         let input = read_to_string("src/input/day05-test.txt").expect("Could not read input");
         let data = parse_input(&input).expect("Parsing failed");
 
-        assert_eq!(part_two(&data), 46);
+        assert_eq!(part_two(&data), Some(46));
     }
 }
