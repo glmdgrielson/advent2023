@@ -14,3 +14,5 @@ pub enum ParseError {
     /// A call to `String::parse` has failed.
     ExpectedNumber(#[from] ParseIntError),
 }
+
+pub type ParseResult<T> = Result<T, ParseError>;
