@@ -48,7 +48,7 @@ fn parse_input(input: &str) -> ParseResult<Grid<Rock>> {
     Ok(grid)
 }
 
-fn tilt_grid(grid: &Grid<Rock>) -> Grid<Rock> {
+fn tilt_north(grid: &Grid<Rock>) -> Grid<Rock> {
     let mut out = Grid::new(0, 0, vec![]);
 
     for col in grid.columns() {
@@ -79,7 +79,7 @@ fn tilt_grid(grid: &Grid<Rock>) -> Grid<Rock> {
 /// rocks move upward. How much stress
 /// does this action place upon the dish?
 fn part_one(data: &Grid<Rock>) -> usize {
-    let grid = tilt_grid(data);
+    let grid = tilt_north(data);
 
     grid.rows()
         .map(|row| {
@@ -92,9 +92,70 @@ fn part_one(data: &Grid<Rock>) -> usize {
         .sum()
 }
 
-#[allow(unused)]
-fn part_two(data: &Grid<Rock>) {
-    unimplemented!();
+const REPETITIONS: u32 = 1_000_000_000;
+
+/// Detect cycles for a function
+fn detect_cycle<T, F>(f: F, initial: T) -> (u32, u32)
+where
+    F: Fn(T) -> T,
+    T: PartialEq<T> + Clone,
+{
+    let mut power = 1;
+    let mut cycle_length = 1;
+    let mut slow = initial.clone();
+    let mut fast = f(initial.clone());
+
+    while fast != slow {
+        if cycle_length == power {
+            slow = fast.clone();
+            power *= 2;
+            cycle_length = 0;
+        }
+        fast = f(fast);
+        cycle_length += 1;
+    }
+
+    slow = initial.clone();
+    fast = initial.clone();
+
+    for _ in 0..cycle_length {
+        fast = f(fast);
+    }
+
+    let mut cycle_start = 0;
+    while fast != slow {
+        slow = f(slow);
+        fast = f(fast);
+        cycle_start += 1;
+    }
+
+    (cycle_length, cycle_start)
+}
+
+fn tilt_cycle(grid: Grid<Rock>) -> Grid<Rock> {
+    let mut out = grid.clone();
+    for _ in 0..4 {
+        out = tilt_north(&out);
+        out.rotate_cw();
+    }
+    out
+}
+
+/// Part 2
+fn part_two(data: &Grid<Rock>) -> usize {
+    let (length, start) = detect_cycle(tilt_cycle, data.clone());
+    let length = start + (REPETITIONS - start) % length;
+    let grid = (0..length).fold(data.clone(), |acc, _| tilt_cycle(acc));
+
+    grid.rows()
+        .map(|row| {
+            let count = grid
+                .row_iter(row)
+                .filter(|&rock| *rock == Rock::Round)
+                .count();
+            count * (grid.height() - row)
+        })
+        .sum()
 }
 
 fn main() {
@@ -102,6 +163,10 @@ fn main() {
     let data = parse_input(&input).expect("Parsing failed");
 
     println!("The total load on the supports is {}", part_one(&data));
+    println!(
+        "The total load after a billion cycles is {}",
+        part_two(&data)
+    );
 }
 
 #[cfg(test)]
@@ -123,7 +188,7 @@ mod test {
         let input = read_to_string("src/input/day14-test.txt").expect("Could not read example");
         let data = parse_input(&input).expect("Parsing failed");
 
-        let grid = tilt_grid(&data);
+        let grid = tilt_north(&data);
 
         let actual = grid.column_iter(0).map(|&rock| rock).collect::<Vec<_>>();
         let expected: Vec<_> = [
@@ -142,5 +207,37 @@ mod test {
         let data = parse_input(&input).expect("Parsing failed");
 
         assert_eq!(part_one(&data), 136);
+    }
+
+    #[test]
+    fn test_detect_cycle() {
+        fn test_func(val: u32) -> u32 {
+            (val * val + 1) % 255
+        }
+
+        assert_eq!(detect_cycle(test_func, 3), (6, 2));
+    }
+
+    #[test]
+    fn test_tilt_cycle() {
+        let input = read_to_string("src/input/day14-test.txt").expect("Could not read example");
+        let data = parse_input(&input).expect("Parsing failed");
+
+        let grid = tilt_cycle(data);
+
+        println!("{:?}", grid.row_iter(0).collect::<Vec<_>>());
+        assert_eq!(grid.row_iter(0).position(|&rock| rock == Rock::Round), None);
+        assert_eq!(
+            grid.row_iter(1).position(|&rock| rock == Rock::Round),
+            Some(8)
+        );
+    }
+
+    #[test]
+    fn test_part_two() {
+        let input = read_to_string("src/input/day14-test.txt").expect("Could not read example");
+        let data = parse_input(&input).expect("Parsing failed");
+
+        assert_eq!(part_two(&data), 64);
     }
 }
