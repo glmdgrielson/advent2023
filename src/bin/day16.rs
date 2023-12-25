@@ -135,7 +135,10 @@ fn parse_input(input: &str) -> ParseResult<Grid<Point>> {
 /// After firing a beam in the northwestern
 /// corner, how many cells are illuminated?
 fn part_one(data: &Grid<Point>) -> usize {
-    let start = Beam { direction: Direction::East, position: GridIndex::new(0, 0) };
+    let start = Beam {
+        direction: Direction::East,
+        position: GridIndex::new(0, 0),
+    };
     light_cells(start, data)
 }
 
@@ -230,8 +233,35 @@ fn light_cells(start: Beam, data: &Grid<Point>) -> usize {
 }
 
 #[allow(unused)]
-fn part_two() {
-    unimplemented!();
+fn part_two(data: &Grid<Point>) -> Option<usize> {
+    let north = (0..data.width())
+        .map(|col| Beam {
+            direction: Direction::South,
+            position: GridIndex::new(col, 0),
+        })
+        .collect::<Vec<_>>();
+    let south = (0..data.width())
+        .map(|col| Beam {
+            direction: Direction::North,
+            position: GridIndex::new(col, data.height() - 1),
+        })
+        .collect();
+    let west = (0..data.height())
+        .map(|row| Beam {
+            direction: Direction::East,
+            position: GridIndex::new(0, row),
+        })
+        .collect();
+    let east = (0..data.height())
+        .map(|row| Beam {
+            direction: Direction::West,
+            position: GridIndex::new(data.width() - 1, row),
+        })
+        .collect();
+
+    let beams = [north, south, east, west].concat();
+
+    beams.into_iter().map(|beam| light_cells(beam, data)).max()
 }
 
 fn main() {
@@ -239,6 +269,10 @@ fn main() {
     let data = parse_input(&input).expect("Parsing failed");
 
     println!("The number of illuminated cells is {}", part_one(&data));
+    println!(
+        "The maximum number of illuminated cells is {}",
+        part_two(&data).expect("Should have value")
+    );
 }
 
 #[cfg(test)]
@@ -268,7 +302,14 @@ mod test {
         let input = read_to_string("src/input/day16-test.txt").expect("Could not read example");
         let data = parse_input(&input).expect("Parsing failed");
 
-        println!("Width: {}, Height: {}", data.width(), data.height());
         assert_eq!(part_one(&data), 46);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let input = read_to_string("src/input/day16-test.txt").expect("Could not read example");
+        let data = parse_input(&input).expect("Parsing failed");
+
+        assert_eq!(part_two(&data), Some(51));
     }
 }
