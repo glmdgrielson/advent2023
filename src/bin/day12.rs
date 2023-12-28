@@ -8,17 +8,19 @@
 //! Gear Island panics! Or explodes!
 
 use std::fs::read_to_string;
-use std::iter::zip;
+use std::iter::{repeat, zip};
+
+use memoize::memoize;
 
 use advent_2023::ParseError;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct Record {
     springs: Vec<SpringStatus>,
     errors: Vec<usize>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum SpringStatus {
     Unknown,
     Broken,
@@ -121,16 +123,106 @@ fn part_one(data: &[Record]) -> u32 {
     data.iter().map(|record| solve(record)).sum()
 }
 
-#[allow(unused)]
-fn part_two(data: &[Record]) {
-    todo!();
+const FAILURE: u64 = 0;
+const SUCCESS: u64 = 1;
+
+#[memoize(Capacity: 256)]
+/// Solve the given record, in a way that doesn't take forever.
+///
+/// TODO: This has an undiagnosed issue where it might give
+/// odd results if the last element of `rec.springs` is not
+/// an Okay. This is an easily fixed issue, but I should
+/// figure out why it's happening in the first place.
+fn smart_solve(rec: Record) -> u64 {
+    // println!("{:?}", rec);
+    let values = &rec.springs;
+    let errors = &rec.errors;
+
+    if errors.is_empty() {
+        if values.contains(&SpringStatus::Broken) {
+            return FAILURE;
+        } else {
+            return SUCCESS;
+        }
+    };
+
+    // The minimum length of a possible record.
+    let remaining_len = errors.iter().sum::<usize>() + errors.len();
+    // If we don't have enough springs to satisfy the data,
+    // bail out here.
+    if values.len() < remaining_len {
+        return FAILURE;
+    }
+
+    let mut possibilities = 0;
+
+    if values[0] != SpringStatus::Broken {
+        // Let's assume it's fine then.
+        let yea = Record {
+            springs: values[1..].to_owned(),
+            errors: errors.clone(),
+        };
+
+        possibilities += smart_solve(yea);
+    }
+
+    let next_group = errors[0];
+    // Does the group contain exactly enough errors?
+    if !values[..next_group].contains(&SpringStatus::Okay)
+        && values[next_group] != SpringStatus::Broken
+    {
+        // Then we can assume all of the relevant springs are damaged.
+        let nay = Record {
+            springs: values[next_group + 1..].to_vec(),
+            errors: errors[1..].to_vec(),
+        };
+
+        possibilities += smart_solve(nay);
+    }
+
+    possibilities
+}
+
+/// Part 2
+/// ------
+///
+/// So it turns out the input we have is incomplete. By
+/// a factor of five. So, after duplicating the data we
+/// have to fit the proper sizes, we answer the same
+/// question: how many possibilities are there for the
+/// data?
+fn part_two(data: &[Record]) -> u64 {
+    data.iter()
+        .map(|rec| -> Record {
+            let springs = repeat(rec.springs.clone())
+                .take(5)
+                .collect::<Vec<_>>()
+                .join(&SpringStatus::Unknown);
+            let springs: Vec<_> = [springs, vec![SpringStatus::Okay]].concat();
+
+            let errors = repeat(rec.errors.clone())
+                .take(5)
+                .collect::<Vec<_>>()
+                .concat();
+
+            Record { springs, errors }
+        })
+        .map(|rec| smart_solve(rec))
+        .sum()
 }
 
 fn main() {
     let input = read_to_string("src/input/day12.txt").expect("Could not load input");
     let data = parse_input(&input).expect("Parsing failed");
 
-    println!("The total number of possible combinations is {}", part_one(&data));
+    println!(
+        "The total number of possible combinations is {}",
+        part_one(&data)
+    );
+    println!(
+        "The number of possibilities when unfolded is {}",
+        part_two(&data)
+    );
 }
 
 #[cfg(test)]
@@ -174,5 +266,27 @@ mod test {
         let data = parse_input(&input).expect("Parsing failed");
 
         assert_eq!(part_one(&data), 21);
+    }
+
+    #[test]
+    fn test_smart_solve() {
+        let input = read_to_string("src/input/day12-test.txt").expect("Could not load example");
+        let data = parse_input(&input).expect("Parsing failed");
+
+        let springs = [data[0].springs.clone(), vec![SpringStatus::Okay]].concat();
+        let rec = Record {
+            springs,
+            errors: data[0].errors.clone(),
+        };
+
+        assert_eq!(smart_solve(rec), solve(&data[0]) as u64);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let input = read_to_string("src/input/day12-test.txt").expect("Could not load example");
+        let data = parse_input(&input).expect("Parsing failed");
+
+        assert_eq!(part_two(&data), 525152);
     }
 }
