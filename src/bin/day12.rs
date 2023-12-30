@@ -120,7 +120,7 @@ fn solve(rec: &Record) -> u32 {
 /// Given the information we have, how many possibilities
 /// are there that satisfy the constraints?
 fn part_one(data: &[Record]) -> u32 {
-    data.iter().map(|record| solve(record)).sum()
+    data.iter().map(solve).sum()
 }
 
 const FAILURE: u64 = 0;
@@ -207,7 +207,7 @@ fn part_two(data: &[Record]) -> u64 {
 
             Record { springs, errors }
         })
-        .map(|rec| smart_solve(rec))
+        .map(smart_solve)
         .sum()
 }
 
