@@ -44,15 +44,6 @@ struct Crucible {
     steps: u8,
 }
 
-fn opposite_dir(direction: Direction) -> Direction {
-    match direction {
-        Direction::North => Direction::South,
-        Direction::South => Direction::North,
-        Direction::East => Direction::West,
-        Direction::West => Direction::East,
-    }
-}
-
 impl Crucible {
     fn next_directions(&self) -> Vec<Direction> {
         match self.direction {
