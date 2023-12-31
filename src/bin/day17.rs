@@ -37,7 +37,7 @@ fn parse_input(input: &str) -> ParseResult<Grid<u32>> {
 struct Crucible {
     cost: u32,
     location: GridIndex,
-    direction: Direction,
+    direction: Option<Direction>,
     /// How many steps we've taken in the current direction.
     ///
     /// Can never be more than three.
@@ -47,10 +47,16 @@ struct Crucible {
 impl Crucible {
     fn next_directions(&self) -> Vec<Direction> {
         match self.direction {
-            Direction::North => vec![Direction::North, Direction::East, Direction::West],
-            Direction::South => vec![Direction::South, Direction::East, Direction::West],
-            Direction::East => vec![Direction::North, Direction::South, Direction::East],
-            Direction::West => vec![Direction::North, Direction::South, Direction::West],
+            Some(Direction::North) => vec![Direction::North, Direction::East, Direction::West],
+            Some(Direction::South) => vec![Direction::South, Direction::East, Direction::West],
+            Some(Direction::East) => vec![Direction::North, Direction::South, Direction::East],
+            Some(Direction::West) => vec![Direction::North, Direction::South, Direction::West],
+            None => vec![
+                Direction::North,
+                Direction::South,
+                Direction::East,
+                Direction::West,
+            ],
         }
     }
 
@@ -58,12 +64,12 @@ impl Crucible {
         self.next_directions()
             .iter()
             .filter_map(|&dir| {
-                if dir == self.direction && self.steps == 3 {
+                if Some(dir) == self.direction && self.steps == 3 {
                     None
-                } else if let Some(location) = self.forward(costs) {
+                } else if let Some(location) = self.forward(dir, costs) {
                     let cost = self.cost + costs[location];
 
-                    let steps = if self.direction == dir {
+                    let steps = if self.direction == Some(dir) {
                         self.steps + 1
                     } else {
                         1
@@ -72,7 +78,7 @@ impl Crucible {
                     Some(Crucible {
                         cost,
                         location,
-                        direction: dir,
+                        direction: Some(dir),
                         steps,
                     })
                 } else {
@@ -82,8 +88,8 @@ impl Crucible {
             .collect()
     }
 
-    fn forward(&self, costs: &Grid<u32>) -> Option<GridIndex> {
-        match self.direction {
+    fn forward(&self, direction: Direction, costs: &Grid<u32>) -> Option<GridIndex> {
+        match direction {
             Direction::North => costs.up_index(self.location),
             Direction::South => costs.down_index(self.location),
             Direction::East => costs.right_index(self.location),
@@ -117,15 +123,9 @@ fn part_one(data: &Grid<u32>) -> u32 {
     let mut queue = BinaryHeap::from([
         Reverse(Crucible {
             cost: 0,
-            location: GridIndex::new(1, 0),
-            direction: Direction::South,
-            steps: 1,
-        }),
-        Reverse(Crucible {
-            cost: 0,
-            location: GridIndex::new(0, 1),
-            direction: Direction::East,
-            steps: 1,
+            location: GridIndex::new(0, 0),
+            direction: None,
+            steps: 0,
         }),
     ]);
 
@@ -149,7 +149,7 @@ fn part_one(data: &Grid<u32>) -> u32 {
         }
     }
 
-    unreachable!("Endpoint was not reached!")
+    unreachable!("Endpoint was not reached!");
     // target.into_iter().min().expect("Target must be reached")
     // not 1015...
 }
