@@ -44,6 +44,15 @@ struct Crucible {
     steps: u8,
 }
 
+fn opposite_dir(direction: Direction) -> Direction {
+    match direction {
+        Direction::North => Direction::South,
+        Direction::South => Direction::North,
+        Direction::East => Direction::West,
+        Direction::West => Direction::East,
+    }
+}
+
 impl Crucible {
     fn next_directions(&self) -> Vec<Direction> {
         match self.direction {
@@ -65,6 +74,38 @@ impl Crucible {
             .iter()
             .filter_map(|&dir| {
                 if Some(dir) == self.direction && self.steps == 3 {
+                    None
+                } else if let Some(location) = self.forward(dir, costs) {
+                    let cost = self.cost + costs[location];
+
+                    let steps = if self.direction == Some(dir) {
+                        self.steps + 1
+                    } else {
+                        1
+                    };
+
+                    Some(Crucible {
+                        cost,
+                        location,
+                        direction: Some(dir),
+                        steps,
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    fn ultra_next_steps(&self, costs: &Grid<u32>) -> Vec<Self> {
+        // let directions = [Direction::North, Direction::South, Direction::East, Direction::West];
+
+        self.next_directions()
+            .iter()
+            .filter_map(|&dir| {
+                if self.steps < 4 && self.direction.is_some_and(|curr| dir != curr) {
+                    None
+                } else if self.direction == Some(dir) && self.steps == 10 {
                     None
                 } else if let Some(location) = self.forward(dir, costs) {
                     let cost = self.cost + costs[location];
@@ -120,14 +161,12 @@ impl Ord for Crucible {
 fn part_one(data: &Grid<u32>) -> u32 {
     let endpoint = GridIndex::new(data.width() - 1, data.height() - 1);
 
-    let mut queue = BinaryHeap::from([
-        Reverse(Crucible {
-            cost: 0,
-            location: GridIndex::new(0, 0),
-            direction: None,
-            steps: 0,
-        }),
-    ]);
+    let mut queue = BinaryHeap::from([Reverse(Crucible {
+        cost: 0,
+        location: GridIndex::new(0, 0),
+        direction: None,
+        steps: 0,
+    })]);
 
     let mut seen = HashSet::new();
 
@@ -154,11 +193,40 @@ fn part_one(data: &Grid<u32>) -> u32 {
     // not 1015...
 }
 
+/// Part 2
+fn part_two(data: &Grid<u32>) -> u32 {
+    let endpoint = GridIndex::new(data.width() - 1, data.height() - 1);
+
+    let mut queue = BinaryHeap::from([Reverse(Crucible {
+        cost: 0,
+        location: GridIndex::new(0, 0),
+        direction: None,
+        steps: 0,
+    })]);
+
+    let mut seen = HashSet::new();
+
+    while let Some(Reverse(crucible)) = queue.pop() {
+        if crucible.location == endpoint && crucible.steps >= 4 {
+            return crucible.cost;
+        }
+
+        for next in crucible.ultra_next_steps(data) {
+            if seen.insert((next.location, next.direction, next.steps)) {
+                queue.push(Reverse(next));
+            }
+        }
+    }
+
+    unreachable!("Endpoint was not reached!")
+}
+
 fn main() {
     let input = read_to_string("src/input/day17.txt").expect("Could not read file");
     let data = parse_input(&input).expect("Parsing failed");
 
     println!("Minimum heat loss for crucible is {}", part_one(&data));
+    println!("Minimum heat loss for ULTRA crucible is {}", part_two(&data));
 }
 
 #[cfg(test)]
@@ -182,5 +250,38 @@ mod test {
         let data = parse_input(&input).expect("Parsing failed");
 
         assert_eq!(part_one(&data), 102);
+    }
+
+    const PATHOLOGICAL: &str = "111111111111
+999999999991
+999999999991
+999999999991
+999999999991";
+
+    #[test]
+    fn test_part_two() {
+        let input = read_to_string("src/input/day17-test.txt").expect("Could not read example");
+        let data = parse_input(&input).expect("Parsing failed");
+
+        assert_eq!(part_two(&data), 94);
+
+        let pathological = parse_input(PATHOLOGICAL).expect("Parsing failed");
+
+        assert_eq!(part_two(&pathological), 71);
+    }
+
+    #[test]
+    fn test_ultra_next_steps() {
+        let input = read_to_string("src/input/day17-test.txt").expect("Could not read example");
+        let data = parse_input(&input).expect("Parsing failed");
+
+        let origin = Crucible {
+            cost: 0,
+            location: (0, 0).into(),
+            direction: None,
+            steps: 0,
+        };
+
+        assert!(!origin.ultra_next_steps(&data).is_empty());
     }
 }
