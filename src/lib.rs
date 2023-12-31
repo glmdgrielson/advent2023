@@ -1,7 +1,8 @@
 //! Common utilities for Advent of Code
 
-use thiserror::Error;
 use std::num::ParseIntError;
+
+use thiserror::Error;
 
 #[derive(Clone, PartialEq, Debug, Error)]
 /// The common error type for parsing.
@@ -16,3 +17,11 @@ pub enum ParseError {
 }
 
 pub type ParseResult<T> = Result<T, ParseError>;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Direction {
+    North,
+    South,
+    East,
+    West,
+}
